@@ -1,0 +1,68 @@
+# JobManager 配置
+jobmanager.rpc.address: hadoop102
+jobmanager.memory.process.size: 1024m
+
+# TaskManager 配置
+taskmanager.memory.process.size: 1024m
+taskmanager.numberOfTaskSlots: 2
+
+# 并行度
+parallelism.default: 2
+
+# REST API
+rest.address: hadoop102
+rest.bind-address: 0.0.0.0
+rest.port: 8081
+
+# Checkpoint 配置（使用 HDFS）
+state.backend: filesystem
+state.checkpoints.dir: hdfs://hadoop102:8020/flink/checkpoints
+state.savepoints.dir: hdfs://hadoop102:8020/flink/savepoints
+
+# HDFS 文件系统支持
+fs.hdfs.hadoopconf: /opt/module/hadoop-3.3.1/etc/hadoop
+
+# 超时配置
+heartbeat.timeout: 5000
+heartbeat.interval: 1000
+
+# 环境 Java 参数
+env.java.opts: "-XX:+UseG1GC"
+
+# 高可用配置
+high-availability: zookeeper
+high-availability.zookeeper.quorum: hadoop102:2181,hadoop103:2181,hadoop104:2181
+high-availability.zookeeper.path.root: /flink
+high-availability.cluster-id: /cluster_one
+high-availability.storageDir: hdfs://hadoop102:8020/flink/ha/
+
+# JobManager 高可用地址
+jobmanager.rpc.port: 6123
+jobmanager.heap.size: 1024m
+
+# TaskManager 资源
+taskmanager.heap.size: 1024m
+taskmanager.numberOfTaskSlots: 2
+
+# 网络配置
+akka.ask.timeout: 60s
+akka.client.timeout: 60s
+akka.watch.heartbeat.interval: 1s
+akka.watch.heartbeat.pause: 60s
+akka.watch.threshold: 12
+
+# 重启策略
+restart-strategy: fixed-delay
+restart-strategy.fixed-delay.attempts: 3
+restart-strategy.fixed-delay.delay: 10s
+
+# 状态管理
+state.backend.fs.checkpointdir: hdfs://hadoop102:8020/flink/checkpoints
+state.backend.fs.savepointdir: hdfs://hadoop102:8020/flink/savepoints
+
+# 检查点配置
+execution.checkpointing.interval: 60000
+execution.checkpointing.timeout: 600000
+execution.checkpointing.min-pause: 30000
+execution.checkpointing.max-concurrent-checkpoints: 1
+execution.checkpointing.mode: EXACTLY_ONCE

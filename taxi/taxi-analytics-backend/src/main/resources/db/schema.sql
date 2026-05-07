@@ -1,0 +1,20 @@
+CREATE TABLE export_task ( 
+    id BIGINT NOT NULL AUTO_INCREMENT COMMENT '自增主键', 
+    task_id VARCHAR(64) NOT NULL COMMENT '任务唯一标识', 
+    task_type VARCHAR(32) NOT NULL COMMENT '任务类型: KPI_DAILY/FEE_ANALYSIS/HOTSPOTS', 
+    status VARCHAR(16) NOT NULL COMMENT '状态: PENDING/RUNNING/SUCCESS/FAILED/CANCELLED', 
+    progress INT DEFAULT 0 COMMENT '进度百分比(0-100)', 
+    file_name VARCHAR(255) COMMENT '导出文件名', 
+    file_path VARCHAR(500) COMMENT '文件存储路径', 
+    file_size BIGINT COMMENT '文件大小(字节)', 
+    total_rows INT COMMENT '总记录数', 
+    error_message TEXT COMMENT '错误信息', 
+    query_params TEXT COMMENT '查询参数JSON', 
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间', 
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间', 
+    expires_at DATETIME COMMENT '过期时间', 
+    PRIMARY KEY (id), 
+    UNIQUE KEY uk_task_id (task_id), 
+    INDEX idx_status (status), 
+    INDEX idx_created_at (created_at) 
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='导出任务表';

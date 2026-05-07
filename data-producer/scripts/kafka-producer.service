@@ -1,0 +1,13 @@
+[Unit]
+Description=Kafka Taxi Trip Producer
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/path/to/py_taxi
+ExecStart=/usr/bin/python3 scripts/kafka_producer.py --rate 10
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

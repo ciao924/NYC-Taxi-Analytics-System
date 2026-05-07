@@ -1,0 +1,106 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+    connection-timeout: 30000
+    max-connections: 10000
+
+spring:
+  application:
+    name: taxi-analytics-backend
+  datasource:
+    dynamic:
+      primary: ads
+      strict: false
+      datasource:
+        ads:
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://${MYSQL_HOST:192.168.127.102}:${MYSQL_PORT:3306}/nyc_taxi_ads?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+          username: ${MYSQL_USER:root}
+          password: ${MYSQL_PASSWORD:BAi@123456}
+        quality:
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://${MYSQL_HOST:192.168.127.102}:${MYSQL_PORT:3306}/nyc_taxi_quality?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+          username: ${MYSQL_USER:root}
+          password: ${MYSQL_PASSWORD:BAi@123456}
+        ai:
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://${MYSQL_HOST:192.168.127.102}:${MYSQL_PORT:3306}/nyc_taxi_ai?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+          username: ${MYSQL_USER:root}
+          password: ${MYSQL_PASSWORD:BAi@123456}
+      hikari:
+        minimum-idle: 5
+        maximum-pool-size: 20
+        idle-timeout: 300000
+        connection-timeout: 30000
+        pool-name: TaxiAnalyticsHikariPool
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+# MyBatis-Plus配置
+mybatis-plus:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.taxi.analytics.modules.**.entity
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+# 异步导出配置
+taxi:
+  analytics:
+    export:
+      max-rows: 100000
+      max-concurrent-tasks: 5
+      task-expire-minutes: 1440
+      file-retention-hours: 24
+      temp-dir: /tmp/exports
+      chunk-size: 10000
+    query:
+      max-date-range-days: 90
+      default-page-size: 20
+      max-page-size: 500
+      default-top-n: 30
+      max-top-n: 100
+    cache:
+      enabled: false
+      ttl:
+        kpi: 300
+        chart: 1800
+    extension:
+      mining-enabled: false
+      realtime-enabled: false
+
+# SpringDoc OpenAPI配置
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+# 日志配置
+logging:
+  level:
+    com.taxi.analytics: DEBUG
+    com.taxi.analytics.modules.**.mapper: DEBUG
+
+# AI 模块配置
+ai:
+  coze:
+    api-url: ${COZE_API_URL:https://k376w6hmfv.coze.site/stream_run}
+    timeout: ${COZE_TIMEOUT:5000}
+  query:
+    timeout: ${AI_QUERY_TIMEOUT:10000}
+    max-rows: ${AI_QUERY_MAX_ROWS:1000}

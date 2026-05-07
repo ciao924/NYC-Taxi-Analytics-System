@@ -1,0 +1,43 @@
+<template>
+  <el-tag :type="statusType" size="small" effect="plain">
+    <el-icon><component :is="iconMap[status]" /></el-icon>
+    <span>{{ statusText }}</span>
+  </el-tag>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import { Warning, Check, Loading } from '@element-plus/icons-vue'
+
+export type DataStatus = 'normal' | 'updating' | 'delay' | 'unknown'
+
+const props = defineProps<{
+  status: DataStatus
+  lastUpdateTime?: string
+}>()
+
+const statusType = computed(() => {
+  switch (props.status) {
+    case 'normal': return 'success'
+    case 'updating': return 'warning'
+    case 'delay': return 'danger'
+    default: return 'info'
+  }
+})
+
+const iconMap = {
+  normal: Check,
+  updating: Loading,
+  delay: Warning,
+  unknown: Warning
+}
+
+const statusText = computed(() => {
+  switch (props.status) {
+    case 'normal': return `数据已更新${props.lastUpdateTime ? ` (${props.lastUpdateTime})` : ''}`
+    case 'updating': return '数据更新中，仅供参考'
+    case 'delay': return '数据延迟，请耐心等待'
+    default: return '数据状态未知'
+  }
+})
+</script>
