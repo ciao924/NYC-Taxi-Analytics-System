@@ -25,6 +25,15 @@ export interface HourlyDistribution {
   hour: number
   tripCount: number
   avgFare: number
+  totalRevenue: number
+}
+
+export interface VendorData {
+  vendorName: string
+  tripCount: number
+  totalRevenue: number
+  avgFare: number
+  avgDistance: number
 }
 
 export interface DateRangeParams {
@@ -66,6 +75,13 @@ export const dashboardApi = {
     if (startDate) params.startDate = startDate
     if (endDate) params.endDate = endDate
     return request.get<PaymentDistribution[]>('/dashboard/payment/analysis', params)
+  },
+
+  getVendorAnalysis: (startDate?: string, endDate?: string) => {
+    const params: Record<string, string> = {}
+    if (startDate) params.startDate = startDate
+    if (endDate) params.endDate = endDate
+    return request.get<VendorData[]>('/dashboard/vendor/analysis', params)
   },
 
   getFeeComposition: (startDate?: string, endDate?: string) => {

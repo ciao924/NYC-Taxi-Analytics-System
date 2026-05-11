@@ -27,6 +27,15 @@ export interface HourlyDistribution {
   hour: number
   tripCount: number
   avgFare: number
+  totalRevenue: number
+}
+
+export interface VendorData {
+  vendorName: string
+  tripCount: number
+  totalRevenue: number
+  avgFare: number
+  avgDistance: number
 }
 
 export const useDashboardStore = defineStore('dashboard', () => {
@@ -34,6 +43,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const kpiTrend = ref<TrendData[]>([])
   const paymentAnalysis = ref<PaymentDistribution[]>([])
   const hourlyDistribution = ref<HourlyDistribution[]>([])
+  const vendorAnalysis = ref<VendorData[]>([])
 
   const fetchKpiSummary = async (startDate?: string, endDate?: string) => {
     try {
@@ -71,11 +81,21 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
   }
 
+  const fetchVendorAnalysis = async (startDate?: string, endDate?: string) => {
+    try {
+      const response = await dashboardApi.getVendorAnalysis(startDate, endDate)
+      vendorAnalysis.value = response
+    } catch (error) {
+      console.error('Failed to fetch vendor analysis:', error)
+    }
+  }
+
   const clearData = () => {
     kpiSummary.value = null
     kpiTrend.value = []
     paymentAnalysis.value = []
     hourlyDistribution.value = []
+    vendorAnalysis.value = []
   }
 
   return {
@@ -83,10 +103,12 @@ export const useDashboardStore = defineStore('dashboard', () => {
     kpiTrend,
     paymentAnalysis,
     hourlyDistribution,
+    vendorAnalysis,
     fetchKpiSummary,
     fetchKpiTrend,
     fetchPaymentAnalysis,
     fetchHourlyDistribution,
+    fetchVendorAnalysis,
     clearData
   }
 })

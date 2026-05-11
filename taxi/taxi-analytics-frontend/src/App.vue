@@ -1,5 +1,5 @@
 <template>
-  <div id="app" class="app-container">
+  <div id="app" class="app-container" @contextmenu.prevent="showContextMenu">
     <el-container class="app-layout">
       <el-header class="app-header">
         <div class="header-brand">
@@ -33,13 +33,6 @@
           </el-menu>
         </div>
         <div class="header-actions">
-          <el-button
-            type="text"
-            class="theme-toggle"
-            @click="toggleDarkMode"
-          >
-            {{ isDarkMode ? '☀' : '☽' }}
-          </el-button>
         </div>
       </el-header>
       <el-main class="app-main">
@@ -50,34 +43,64 @@
         </router-view>
       </el-main>
     </el-container>
+
+    <!-- 自定义右键菜单 -->
+    <Teleport to="body">
+      <el-menu
+        v-if="contextMenuVisible"
+        :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }"
+        class="context-menu"
+        mode="vertical"
+      >
+        <el-menu-item @click="refreshPage">
+          <span>刷新页面</span>
+        </el-menu-item>
+      </el-menu>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
-const isDarkMode = ref(false)
+const router = useRouter()
+const contextMenuVisible = ref(false)
+const contextMenuX = ref(0)
+const contextMenuY = ref(0)
 
 const activeRoute = computed(() => route.path)
 
-const toggleDarkMode = () => {
-  isDarkMode.value = !isDarkMode.value
-  document.documentElement.classList.toggle('dark', isDarkMode.value)
-  localStorage.setItem('darkMode', String(isDarkMode.value))
+const showContextMenu = (event: MouseEvent) => {
+  contextMenuX.value = event.clientX
+  contextMenuY.value = event.clientY
+  contextMenuVisible.value = true
+}
+
+const hideContextMenu = () => {
+  contextMenuVisible.value = false
+}
+
+const refreshPage = () => {
+  hideContextMenu()
+  const currentPath = route.path
+  router.push({ path: currentPath, query: { t: Date.now().toString() } })
+}
+
+const handleClickOutside = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  if (!target.closest('.context-menu')) {
+    hideContextMenu()
+  }
 }
 
 onMounted(() => {
-  const saved = localStorage.getItem('darkMode')
-  if (saved !== null) {
-    isDarkMode.value = saved === 'true'
-    document.documentElement.classList.toggle('dark', isDarkMode.value)
-  }
+  document.addEventListener('click', handleClickOutside)
 })
 
-watch(isDarkMode, (val) => {
-  document.documentElement.classList.toggle('dark', val)
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -130,12 +153,6 @@ watch(isDarkMode, (val) => {
   gap: 12px;
 }
 
-.theme-toggle {
-  padding: 8px;
-  font-size: 20px;
-  color: #6b7280;
-}
-
 .app-main {
   padding: 24px;
   background-color: #f5f7fa;
@@ -152,26 +169,27 @@ watch(isDarkMode, (val) => {
   opacity: 0;
 }
 
-.dark {
-  .app-container {
-    background-color: #1f2937;
-  }
+.context-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 140px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
+  padding: 4px 0;
 
-  .app-header {
-    background-color: #111827;
-    border-bottom-color: #374151;
-  }
+  :deep(.el-menu-item) {
+    padding: 8px 16px;
+    font-size: 13px;
+    color: #374151;
+    border-radius: 4px;
+    margin: 0 4px;
 
-  .brand-title {
-    color: #f9fafb;
-  }
-
-  .theme-toggle {
-    color: #d1d5db;
-  }
-
-  .app-main {
-    background-color: #1f2937;
+    &:hover {
+      background-color: #f3f4f6;
+      color: #1f2937;
+    }
   }
 }
 </style>

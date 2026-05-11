@@ -111,7 +111,7 @@
             <el-table-column prop="detectedAt" label="检测时间" width="150" />
             <el-table-column label="操作" width="100">
               <template #default>
-                <el-button size="mini" type="text">处理</el-button>
+                <el-button size="mini" type="link">处理</el-button>
               </template>
             </el-table-column>
           </el-table>

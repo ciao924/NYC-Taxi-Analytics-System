@@ -2,58 +2,37 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.taxi.analytics.modules.analysis.mapper.AnalysisMapper">
 
-    <!-- 机场统计 -->
     <select id="selectAirportStatistics" resultType="map">
         SELECT 
             airport_trip as airport_code,
-            '肯尼迪国际机场' as airport_name,
+            CASE airport_trip 
+                WHEN 'JFK' THEN '肯尼迪国际机场'
+                WHEN 'LGA' THEN '拉瓜迪亚机场'
+                WHEN 'EWR' THEN '纽瓦克自由国际机场'
+                ELSE airport_trip 
+            END as airport_name,
             SUM(trip_count) as trip_count,
-            0.0 as total_amount,
-            0.0 as avg_amount,
-            0.0 as avg_distance
+            SUM(total_amount) as total_amount,
+            AVG(avg_fare) as avg_amount,
+            AVG(avg_distance) as avg_distance
         FROM analysis_airport
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        GROUP BY airport_trip
-        UNION ALL
-        SELECT 
-            'LGA' as airport_code,
-            '拉瓜迪亚机场' as airport_name,
-            SUM(trip_count) as trip_count,
-            0.0 as total_amount,
-            0.0 as avg_amount,
-            0.0 as avg_distance
-        FROM analysis_airport
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        AND airport_trip = 'LGA'
-        GROUP BY airport_trip
-        UNION ALL
-        SELECT 
-            'EWR' as airport_code,
-            '纽瓦克自由国际机场' as airport_name,
-            SUM(trip_count) as trip_count,
-            0.0 as total_amount,
-            0.0 as avg_amount,
-            0.0 as avg_distance
-        FROM analysis_airport
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        AND airport_trip = 'EWR'
         GROUP BY airport_trip
     </select>
 
-    <!-- 机场详细统计 -->
     <select id="selectAirportDetailedStatistics" resultType="map">
         SELECT 
             airport_trip as airport_code,
-            0 as hour,
+            pickup_hour as hour,
             SUM(trip_count) as trip_count,
-            false as peak_hour
+            CASE WHEN pickup_hour BETWEEN 7 AND 9 OR pickup_hour BETWEEN 17 AND 19 THEN true ELSE false END as peak_hour
         FROM analysis_airport
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         <if test="airportCode != 'all'">AND airport_trip = #{airportCode}</if>
-        GROUP BY airport_trip
+        GROUP BY airport_trip, pickup_hour
+        ORDER BY airport_trip, pickup_hour
     </select>
 
-    <!-- 供应商对比 -->
     <select id="selectVendorComparison" resultType="map">
         SELECT 
             CASE 
@@ -71,7 +50,6 @@
         GROUP BY vendor_name
     </select>
 
-    <!-- 供应商趋势 -->
     <select id="selectVendorTrend" resultType="map">
         SELECT 
             stat_date as date,
@@ -88,82 +66,268 @@
         ORDER BY stat_date
     </select>
 
-    <!-- 支付方式分布 - 关键修复：将trip_ratio映射为percentage -->
     <select id="selectPaymentDistribution" resultType="map">
         SELECT 
             CASE 
-                WHEN payment_name = '信用卡' THEN '1'
-                WHEN payment_name = '现金' THEN '2'
-                WHEN payment_name = '无消费' THEN '3'
-                WHEN payment_name = '争议' THEN '4'
+                WHEN payment_name = 'Credit Card' THEN '1'
+                WHEN payment_name = 'Cash' THEN '2'
+                WHEN payment_name = 'No Charge' THEN '3'
+                WHEN payment_name = 'Dispute' THEN '4'
+                WHEN payment_name = 'Unknown' THEN '5'
                 ELSE '1'
             END as payment_type,
-            payment_name as payment_desc,
             CASE 
-                WHEN payment_name = '信用卡' THEN 'credit_card'
-                WHEN payment_name = '现金' THEN 'cash'
-                WHEN payment_name = '无消费' THEN 'no_charge'
-                WHEN payment_name = '争议' THEN 'dispute'
+                WHEN payment_name = 'Credit Card' THEN '信用卡'
+                WHEN payment_name = 'Cash' THEN '现金'
+                WHEN payment_name = 'No Charge' THEN '无消费'
+                WHEN payment_name = 'Dispute' THEN '争议'
+                WHEN payment_name = 'Unknown' THEN '未知'
+                ELSE payment_name
+            END as payment_desc,
+            CASE 
+                WHEN payment_name = 'Credit Card' THEN 'credit_card'
+                WHEN payment_name = 'Cash' THEN 'cash'
+                WHEN payment_name = 'No Charge' THEN 'no_charge'
+                WHEN payment_name = 'Dispute' THEN 'dispute'
+                WHEN payment_name = 'Unknown' THEN 'unknown'
                 ELSE 'credit_card'
             END as payment_code,
             SUM(trip_count) as trip_count,
-            AVG(trip_ratio) as percentage,
+            ROUND(SUM(trip_count) * 100.0 / NULLIF((SELECT SUM(trip_count) FROM analysis_payment_analysis WHERE stat_date BETWEEN #{startDate} AND #{endDate}), 0), 2) as percentage,
             SUM(total_amount) as total_amount
         FROM analysis_payment_analysis
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         GROUP BY payment_name
     </select>
 
-    <!-- 支付方式趋势 -->
     <select id="selectPaymentTrend" resultType="map">
         SELECT 
             stat_date as date,
-            SUM(CASE WHEN payment_name = '信用卡' THEN trip_count ELSE 0 END) * 100.0 / NULLIF(SUM(trip_count), 0) as credit_card_pct,
-            SUM(CASE WHEN payment_name = '现金' THEN trip_count ELSE 0 END) * 100.0 / NULLIF(SUM(trip_count), 0) as cash_pct
+            SUM(CASE WHEN payment_name = 'Credit Card' THEN trip_count ELSE 0 END) * 100.0 / NULLIF(SUM(trip_count), 0) as credit_card_pct,
+            SUM(CASE WHEN payment_name = 'Cash' THEN trip_count ELSE 0 END) * 100.0 / NULLIF(SUM(trip_count), 0) as cash_pct
         FROM analysis_payment_analysis
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         GROUP BY stat_date
         ORDER BY stat_date
     </select>
 
-    <!-- 距离分布 -->
     <select id="selectDistanceDistribution" resultType="map">
         SELECT 
             distance_range,
             SUM(trip_count) as trip_count,
-            0.0 as percentage
+            ROUND(SUM(trip_count) * 100.0 / NULLIF((SELECT SUM(trip_count) FROM analysis_distance_distribution WHERE stat_date BETWEEN #{startDate} AND #{endDate}), 0), 2) as percentage,
+            ROUND(AVG(avg_distance), 2) as avg_distance
         FROM analysis_distance_distribution
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         GROUP BY distance_range
         ORDER BY 
             CASE distance_range 
-                WHEN '0-2' THEN 1
-                WHEN '2-5' THEN 2
-                WHEN '5-10' THEN 3
-                WHEN '10-15' THEN 4
-                WHEN '15-20' THEN 5
-                WHEN '20+' THEN 6
-                ELSE 7
+                WHEN '0-5英里' THEN 1
+                WHEN '5-10英里' THEN 2
+                WHEN '10-20英里' THEN 3
+                WHEN '20-50英里' THEN 4
+                WHEN '50-120英里' THEN 5
+                ELSE 6
             END
     </select>
 
-    <!-- 时长分布 -->
     <select id="selectDurationDistribution" resultType="map">
         SELECT 
             duration_range,
             SUM(trip_count) as trip_count,
-            0.0 as percentage
+            ROUND(SUM(trip_count) * 100.0 / NULLIF((SELECT SUM(trip_count) FROM analysis_duration_distribution WHERE stat_date BETWEEN #{startDate} AND #{endDate}), 0), 2) as percentage,
+            ROUND(AVG(avg_duration), 2) as avg_duration
         FROM analysis_duration_distribution
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         GROUP BY duration_range
         ORDER BY 
             CASE duration_range 
-                WHEN '0-10' THEN 1
-                WHEN '10-20' THEN 2
-                WHEN '20-30' THEN 3
-                WHEN '30-45' THEN 4
-                WHEN '45-60' THEN 5
-                WHEN '60+' THEN 6
+                WHEN '0-10分钟' THEN 1
+                WHEN '10-20分钟' THEN 2
+                WHEN '20-30分钟' THEN 3
+                WHEN '30-60分钟' THEN 4
+                WHEN '60分钟以上' THEN 5
+                ELSE 6
+            END
+    </select>
+
+    <select id="selectMultiDimensionAnalysis" resultType="map">
+        SELECT 
+            vendor_name as dim1_value,
+            vendor_name as dim1_name,
+            payment_name as dim2_value,
+            payment_name as dim2_name,
+            SUM(COALESCE(vt.trip_count, 0)) as trip_count,
+            SUM(COALESCE(vt.total_revenue, 0)) as total_amount,
+            CASE WHEN SUM(COALESCE(vt.trip_count, 0)) > 0 THEN 
+                SUM(COALESCE(vt.total_revenue, 0)) / SUM(vt.trip_count) 
+            ELSE 0 END as avg_amount,
+            COALESCE(AVG(vt.avg_distance), 0) as avg_distance,
+            0.0 as percentage,
+            #{startDate} as stat_date
+        FROM (SELECT DISTINCT vendor_name FROM analysis_vendor) v
+        CROSS JOIN (SELECT DISTINCT payment_name FROM analysis_payment_analysis) p
+        LEFT JOIN analysis_vendor vt ON vt.vendor_name = v.vendor_name 
+            AND vt.stat_date BETWEEN #{startDate} AND #{endDate}
+        LEFT JOIN analysis_payment_analysis pt ON pt.payment_name = p.payment_name 
+            AND pt.stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY v.vendor_name, p.payment_name
+        ORDER BY v.vendor_name, p.payment_name
+    </select>
+    
+    <select id="selectMultiDimensionAnalysisVendorAirport" resultType="map">
+        SELECT 
+            v.vendor_name as dim1_value,
+            v.vendor_name as dim1_name,
+            a.airport_trip as dim2_value,
+            a.airport_trip as dim2_name,
+            SUM(COALESCE(vt.trip_count, 0)) as trip_count,
+            SUM(COALESCE(vt.total_revenue, 0)) as total_amount,
+            CASE WHEN SUM(COALESCE(vt.trip_count, 0)) > 0 THEN 
+                SUM(COALESCE(vt.total_revenue, 0)) / SUM(vt.trip_count) 
+            ELSE 0 END as avg_amount,
+            COALESCE(AVG(vt.avg_distance), 0) as avg_distance,
+            0.0 as percentage,
+            #{startDate} as stat_date
+        FROM (SELECT DISTINCT vendor_name FROM analysis_vendor) v
+        CROSS JOIN (SELECT DISTINCT airport_trip FROM analysis_airport) a
+        LEFT JOIN analysis_vendor vt ON vt.vendor_name = v.vendor_name 
+            AND vt.stat_date BETWEEN #{startDate} AND #{endDate}
+        LEFT JOIN analysis_airport at ON at.airport_trip = a.airport_trip 
+            AND at.stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY v.vendor_name, a.airport_trip
+        ORDER BY v.vendor_name, a.airport_trip
+    </select>
+    
+    <select id="selectMultiDimensionAnalysisAirportPayment" resultType="map">
+        SELECT 
+            a.airport_trip as dim1_value,
+            a.airport_trip as dim1_name,
+            p.payment_name as dim2_value,
+            p.payment_name as dim2_name,
+            SUM(COALESCE(at.trip_count, 0)) as trip_count,
+            SUM(COALESCE(at.total_amount, 0)) as total_amount,
+            CASE WHEN SUM(COALESCE(at.trip_count, 0)) > 0 THEN 
+                SUM(COALESCE(at.total_amount, 0)) / SUM(at.trip_count) 
+            ELSE 0 END as avg_amount,
+            COALESCE(AVG(at.avg_distance), 0) as avg_distance,
+            0.0 as percentage,
+            #{startDate} as stat_date
+        FROM (SELECT DISTINCT airport_trip FROM analysis_airport) a
+        CROSS JOIN (SELECT DISTINCT payment_name FROM analysis_payment_analysis) p
+        LEFT JOIN analysis_airport at ON at.airport_trip = a.airport_trip 
+            AND at.stat_date BETWEEN #{startDate} AND #{endDate}
+        LEFT JOIN analysis_payment_analysis pt ON pt.payment_name = p.payment_name 
+            AND pt.stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY a.airport_trip, p.payment_name
+        ORDER BY a.airport_trip, p.payment_name
+    </select>
+
+    <select id="selectAnomalyData" resultType="map">
+        SELECT 'trip_count' as metric_name, stat_date, SUM(trip_count) as value
+        FROM analysis_vendor
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY stat_date
+        UNION ALL
+        SELECT 'total_amount' as metric_name, stat_date, SUM(total_revenue) as value
+        FROM analysis_vendor
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY stat_date
+        UNION ALL
+        SELECT 'avg_amount' as metric_name, stat_date, AVG(avg_fare) as value
+        FROM analysis_airport
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY stat_date
+    </select>
+
+    <select id="selectHistoricalTrend" resultType="map">
+        SELECT 
+            stat_date,
+            SUM(trip_count) as trip_count,
+            SUM(total_revenue) as total_amount
+        FROM analysis_vendor
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY stat_date
+        ORDER BY stat_date
+    </select>
+
+    <select id="selectTrendAnalysis" resultType="map">
+        SELECT 
+            stat_date,
+            SUM(trip_count) as trip_count,
+            SUM(total_revenue) as total_amount,
+            AVG(avg_fare) as avg_amount,
+            AVG(avg_distance) as avg_distance,
+            SUM(passenger_count) as passenger_count,
+            0.0 as growth_rate,
+            0.0 as moving_average
+        FROM analysis_vendor
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY stat_date
+        ORDER BY stat_date
+    </select>
+
+    <select id="selectCrossTabAnalysis" resultType="map">
+        SELECT 
+            v.vendor_name as row_value,
+            p.payment_name as col_value,
+            COALESCE(SUM(vt.trip_count), 0) as trip_count,
+            COALESCE(SUM(vt.total_revenue), 0) as total_amount
+        FROM (SELECT DISTINCT vendor_name FROM analysis_vendor) v
+        CROSS JOIN (SELECT DISTINCT payment_name FROM analysis_payment_analysis) p
+        LEFT JOIN analysis_vendor vt ON vt.vendor_name = v.vendor_name AND vt.stat_date BETWEEN #{startDate} AND #{endDate}
+        LEFT JOIN analysis_payment_analysis pt ON pt.payment_name = p.payment_name AND pt.stat_date = vt.stat_date
+        GROUP BY v.vendor_name, p.payment_name
+    </select>
+
+    <select id="selectKpiSummary" resultType="map">
+        SELECT 
+            SUM(total_trips) as trip_count,
+            SUM(total_revenue) as total_revenue,
+            AVG(avg_fare) as avg_fare,
+            AVG(avg_distance) as avg_distance
+        FROM analysis_kpi_daily
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <select id="selectPassengerDistribution" resultType="map">
+        SELECT 
+            passenger_range,
+            passenger_count as avg_passenger_count,
+            SUM(trip_count) as trip_count,
+            ROUND(SUM(trip_count) * 100.0 / NULLIF((SELECT SUM(trip_count) FROM analysis_passenger_distribution WHERE stat_date BETWEEN #{startDate} AND #{endDate}), 0), 2) as percentage
+        FROM analysis_passenger_distribution
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY passenger_range
+        ORDER BY 
+            CASE passenger_range 
+                WHEN '1人' THEN 1
+                WHEN '2人' THEN 2
+                WHEN '3人' THEN 3
+                WHEN '4人' THEN 4
+                WHEN '5人及以上' THEN 5
+                ELSE 6
+            END
+    </select>
+
+    <select id="selectTipDistribution" resultType="map">
+        SELECT 
+            tip_range,
+            SUM(trip_count) as trip_count,
+            ROUND(SUM(trip_count) * 100.0 / NULLIF((SELECT SUM(trip_count) FROM analysis_tip_distribution WHERE stat_date BETWEEN #{startDate} AND #{endDate}), 0), 2) as percentage,
+            ROUND(AVG(avg_tip), 2) as avg_tip,
+            ROUND(AVG(tip_rate), 2) as avg_tip_rate
+        FROM analysis_tip_distribution
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY tip_range
+        ORDER BY 
+            CASE tip_range 
+                WHEN '无小费' THEN 1
+                WHEN '0-5%' THEN 2
+                WHEN '5-10%' THEN 3
+                WHEN '10-15%' THEN 4
+                WHEN '15-20%' THEN 5
+                WHEN '20%以上' THEN 6
                 ELSE 7
             END
     </select>

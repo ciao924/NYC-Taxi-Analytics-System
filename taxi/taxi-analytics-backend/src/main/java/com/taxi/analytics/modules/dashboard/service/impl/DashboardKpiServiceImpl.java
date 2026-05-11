@@ -127,6 +127,25 @@ public class DashboardKpiServiceImpl extends ServiceImpl<DashboardKpiMapper, Das
         cache.invalidateAll();
     }
 
+    @Override
+    public List<VendorPerformanceDTO> getVendorAnalysis(LocalDate startDate, LocalDate endDate) {
+        String cacheKey = "vendor_analysis:" + startDate + ":" + endDate;
+        return (List<VendorPerformanceDTO>) cache.get(cacheKey, k -> 
+            baseMapper.getVendorAnalysis(startDate, endDate).stream()
+                .map(this::mapToVendorPerformanceDTO)
+                .collect(Collectors.toList())
+        );
+    }
+
+    private VendorPerformanceDTO mapToVendorPerformanceDTO(Map<String, Object> map) {
+        return VendorPerformanceDTO.builder()
+                .vendorName(getStringValue(map, "vendor_name"))
+                .tripCount(getLongValue(map, "trip_count"))
+                .totalRevenue(getDoubleValue(map, "total_revenue"))
+                .avgFare(getDoubleValue(map, "avg_fare"))
+                .build();
+    }
+
     private TrendDataDTO mapToTrendDataDTO(Map<String, Object> map) {
         return TrendDataDTO.builder()
                 .statDate(getStringValue(map, "stat_date"))

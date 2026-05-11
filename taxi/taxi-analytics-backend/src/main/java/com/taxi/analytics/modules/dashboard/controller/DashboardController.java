@@ -5,6 +5,7 @@ import com.taxi.analytics.modules.dashboard.dto.KpiSummaryDTO;
 import com.taxi.analytics.modules.dashboard.dto.TrendDataDTO;
 import com.taxi.analytics.modules.dashboard.dto.HourlyDistributionDTO;
 import com.taxi.analytics.modules.dashboard.dto.PaymentDistributionDTO;
+import com.taxi.analytics.modules.dashboard.dto.VendorPerformanceDTO;
 import com.taxi.analytics.modules.dashboard.service.DashboardKpiService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -99,6 +100,14 @@ public class DashboardController {
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
         return Result.success(kpiService.getBoroughFlow(startDate, endDate));
+    }
+
+    @Operation(summary = "获取供应商分析数据")
+    @GetMapping("/vendor/analysis")
+    public Result<List<VendorPerformanceDTO>> getVendorAnalysis(
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return Result.success(kpiService.getVendorAnalysis(startDate, endDate));
     }
 
     @Operation(summary = "获取可用日期范围")

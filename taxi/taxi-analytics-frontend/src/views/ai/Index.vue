@@ -46,7 +46,7 @@
               @click="applyFavorite(fav.queryText)"
             >
               <span class="favorite-text">{{ fav.queryText }}</span>
-              <el-button size="mini" type="text" @click.stop="removeFavorite(fav.id)" title="取消收藏">×</el-button>
+              <el-button size="mini" type="link" @click.stop="removeFavorite(fav.id)" title="取消收藏">×</el-button>
             </div>
             <div v-if="favorites.length === 0" class="empty-state small">
               <p>暂无收藏</p>
@@ -96,7 +96,7 @@
         <div class="suggestions-panel" v-if="showSuggestions">
           <div class="panel-header">
             <h4>查询建议</h4>
-            <el-button size="mini" type="text" @click="showSuggestions = false">×</el-button>
+            <el-button size="mini" type="link" @click="showSuggestions = false">×</el-button>
           </div>
           <div class="suggestions-list">
             <div
@@ -117,7 +117,7 @@
         <div class="history-panel" v-if="showHistory">
           <div class="panel-header">
             <h4>查询历史</h4>
-            <el-button size="mini" type="text" @click="showHistory = false">×</el-button>
+            <el-button size="mini" type="link" @click="showHistory = false">×</el-button>
           </div>
           <div class="history-list">
             <div

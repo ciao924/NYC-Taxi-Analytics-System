@@ -155,4 +155,21 @@ public interface DashboardKpiMapper extends BaseMapper<DashboardKpi> {
         FROM analysis_kpi_daily
     """)
     Map<String, LocalDate> getAvailableDateRange();
+    
+    // 11. 获取供应商分析数据
+    @Select("""
+        SELECT 
+            vendor_name as vendor_name,
+            SUM(trip_count) as trip_count,
+            SUM(total_revenue) as total_revenue,
+            AVG(avg_fare) as avg_fare,
+            AVG(avg_distance) as avg_distance
+        FROM analysis_vendor
+        WHERE stat_date >= #{startDate} AND stat_date <= #{endDate}
+        GROUP BY vendor_name
+        ORDER BY trip_count DESC
+        LIMIT 10
+    """)
+    List<Map<String, Object>> getVendorAnalysis(@Param("startDate") LocalDate startDate,
+                                                 @Param("endDate") LocalDate endDate);
 }

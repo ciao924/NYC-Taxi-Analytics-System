@@ -61,6 +61,11 @@ public interface DashboardKpiService extends IService<DashboardKpi> {
     Map<String, LocalDate> getAvailableDateRange();
     
     /**
+     * 获取供应商分析数据
+     */
+    List<VendorPerformanceDTO> getVendorAnalysis(LocalDate startDate, LocalDate endDate);
+    
+    /**
      * 刷新缓存
      */
     void refreshCache();
