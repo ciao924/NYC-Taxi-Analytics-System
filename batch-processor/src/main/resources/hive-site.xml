@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <!-- 连接到虚拟机上的 Hive Metastore -->
+    <property>
+        <name>hive.metastore.uris</name>
+        <value>thrift://192.168.127.102:9083</value>
+    </property>
+
+    <!-- Hive 数据仓库目录 -->
+    <property>
+        <name>hive.metastore.warehouse.dir</name>
+        <value>hdfs://192.168.127.102:8020/user/hive_local/warehouse</value>
+    </property>
+
+    <!-- 执行引擎 -->
+    <property>
+        <name>hive.execution.engine</name>
+        <value>spark</value>
+    </property>
+
+    <!-- 动态分区 -->
+    <property>
+        <name>hive.exec.dynamic.partition</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>hive.exec.dynamic.partition.mode</name>
+        <value>nonstrict</value>
+    </property>
+</configuration>
+
+
+        <!--<?xml version="1.0" encoding="UTF-8" standalone="no"?>-->
+        <!--<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>-->
+        <!--<configuration>-->
+        <!--    &lt;!&ndash; 连接到虚拟机上的 Hive Metastore &ndash;&gt;-->
+        <!--    <property>-->
+        <!--        <name>hive.metastore.uris</name>-->
+        <!--        <value>thrift://192.168.127.102:9083</value>-->
+        <!--    </property>-->
+
+        <!--    &lt;!&ndash; Hive 数据仓库目录 &ndash;&gt;-->
+        <!--    <property>-->
+        <!--        <name>hive.metastore.warehouse.dir</name>-->
+        <!--        <value>hdfs://192.168.127.102:8020/user/hive_local/warehouse</value>-->
+        <!--    </property>-->
+        <!--</configuration>-->
