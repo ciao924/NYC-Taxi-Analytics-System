@@ -9,17 +9,17 @@ const routes: Array<RouteRecordRaw> = [
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('@/views/dashboard/Index.vue'),
-    meta: { title: '仪表盘' }
+    meta: { title: '数据看板' }
   },
   {
-    path: '/map/heatmap',
-    name: 'Heatmap',
-    component: () => import('@/views/map/Heatmap.vue'),
-    meta: { title: '热力地图' }
+    path: '/realtime',
+    name: 'Realtime',
+    component: () => import('@/views/realtime/Index.vue'),
+    meta: { title: '实时监控' }
   },
   {
-    path: '/heatmap',
-    name: 'HeatmapView',
+    path: '/map',
+    name: 'Map',
     component: () => import('@/views/map/HeatmapView.vue'),
     meta: { title: '热力地图' }
   },
@@ -27,19 +27,19 @@ const routes: Array<RouteRecordRaw> = [
     path: '/analysis',
     name: 'Analysis',
     component: () => import('@/views/analysis/Index.vue'),
-    meta: { title: '数据分析' }
+    meta: { title: '深度分析' }
   },
   {
     path: '/quality',
     name: 'Quality',
     component: () => import('@/views/quality/Index.vue'),
-    meta: { title: '数据质量检测' }
+    meta: { title: '质量检测' }
   },
   {
     path: '/ai',
     name: 'AI',
     component: () => import('@/views/ai/Index.vue'),
-    meta: { title: '智能查询' }
+    meta: { title: 'AI智能助手' }
   },
   {
     path: '/:pathMatch(.*)*',

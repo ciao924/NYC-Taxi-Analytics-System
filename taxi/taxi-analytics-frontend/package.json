@@ -6,14 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts",
+    "lint:fix": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
+    "format": "prettier --write ."
   },
   "dependencies": {
-    "@amap/amap-jsapi-loader": "^1.0.1",
-    "@element-plus/icons-vue": "^2.3.1",
     "axios": "^1.6.8",
     "echarts": "^5.5.0",
-    "element-plus": "^2.5.6",
+    "element-plus": "^2.6.0",
     "pinia": "^2.1.7",
     "vue": "^3.4.21",
     "vue-echarts": "^6.7.3",
@@ -22,8 +23,15 @@
   "devDependencies": {
     "@types/node": "^20.11.24",
     "@vitejs/plugin-vue": "^5.0.4",
+    "@vue/eslint-config-prettier": "^8.0.0",
+    "@vue/eslint-config-typescript": "^12.0.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-vue": "^9.22.0",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2",
+    "prettier": "^3.2.5",
     "sass": "^1.71.1",
-    "typescript": "5.3",
+    "typescript": "^5.4.5",
     "vite": "^5.1.4",
     "vue-tsc": "^2.2.12"
   }

@@ -5,8 +5,7 @@
       :disabled="disabled"
       @click="handleExport"
     >
-      <el-icon><Download /></el-icon>
-      导出
+      ↓ 导出
     </el-button>
     
     <ExportProgress
@@ -21,7 +20,6 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { Download } from '@element-plus/icons-vue'
 import { useExport } from '@/composables/useExport'
 import ExportProgress from './ExportProgress.vue'
 

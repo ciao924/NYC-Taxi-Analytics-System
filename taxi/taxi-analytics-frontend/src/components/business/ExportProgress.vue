@@ -2,9 +2,7 @@
   <el-dialog v-model="visible" title="导出进度" width="400px" :close-on-click-modal="false">
     <div class="export-progress">
       <div class="progress-info">
-        <el-icon :class="{ 'is-loading': task?.status === 'RUNNING' }">
-          <component :is="statusIcon" />
-        </el-icon>
+        <span class="status-icon" :class="{ 'is-loading': task?.status === 'RUNNING' }">{{ statusIconText }}</span>
         <span class="status-text">{{ statusText }}</span>
       </div>
       
@@ -36,7 +34,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Loading, Check, CircleClose, Document } from '@element-plus/icons-vue'
 import type { ExportTask } from '@/composables/useExport'
 
 const props = defineProps<{
@@ -56,18 +53,18 @@ const visible = computed({
   set: (val) => emit('update:modelValue', val)
 })
 
-const statusIcon = computed(() => {
+const statusIconText = computed(() => {
   switch (props.task?.status) {
     case 'PENDING':
     case 'RUNNING':
-      return Loading
+      return '○'
     case 'SUCCESS':
-      return Check
+      return '✓'
     case 'FAILED':
     case 'CANCELLED':
-      return CircleClose
+      return '✗'
     default:
-      return Document
+      return '📄'
   }
 })
 

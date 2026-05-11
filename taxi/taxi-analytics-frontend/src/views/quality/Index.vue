@@ -1,432 +1,278 @@
 <template>
-  <div class="quality-page">
-    <el-card class="quality-card">
-      <template #header>
-        <div class="card-header">
-          <h2>数据检测模块</h2>
-          <div class="header-controls">
-            <el-date-picker
-              v-model="selectedDate"
-              type="date"
-              placeholder="选择日期"
-              format="YYYY-MM-DD"
-              value-format="YYYY-MM-DD"
-              @change="fetchQualityData"
-              class="date-picker"
-            />
-            <el-button type="primary" @click="fetchQualityData" :loading="loading">
-              刷新数据
-            </el-button>
-          </div>
+  <div class="quality-container">
+    <div class="page-header">
+      <h2 class="page-title">数据质量检测</h2>
+      <div class="header-controls">
+        <el-select v-model="selectedDate" size="small">
+          <el-option label="今日" value="today" />
+          <el-option label="本周" value="week" />
+          <el-option label="本月" value="month" />
+        </el-select>
+        <el-button size="small" type="primary" @click="refreshData">
+          刷新
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 概览卡片 -->
+    <div class="overview-grid">
+      <div class="overview-card">
+        <div class="overview-header">
+          <span class="overview-title">数据完整性</span>
+          <span class="status-icon" :class="completenessStatus">{{ getStatusIcon(completenessStatus) }}</span>
         </div>
-      </template>
-
-      <!-- 加载状态 -->
-      <el-skeleton :loading="loading" animated>
-        <template #template>
-          <el-skeleton-item variant="p" style="width: 100%" />
-          <el-skeleton-item variant="rect" style="height: 120px; margin-top: 16px" />
-          <el-skeleton-item variant="rect" style="height: 300px; margin-top: 16px" />
-        </template>
-
-        <!-- 错误状态 -->
-        <div v-if="error" class="error-container">
-          <el-alert
-            :title="errorMessage"
-            type="error"
-            show-icon
-            :closable="false"
-            class="error-alert"
-          />
-          <el-button type="primary" @click="fetchQualityData" class="retry-button">
-            重试
-          </el-button>
+        <div class="overview-value">{{ dataQuality.completeness }}%</div>
+        <div class="progress-bar">
+          <div class="progress-fill" :style="{ width: dataQuality.completeness + '%' }" :class="completenessStatus"></div>
         </div>
+      </div>
 
-        <!-- 数据展示区域 -->
-        <div v-else class="data-display">
-          <!-- 质量概览卡片区 -->
-          <div class="overview-section">
-            <el-row :gutter="20">
-              <el-col :xs="12" :sm="6" :md="6">
-                <el-card class="overview-card" :class="scoreClass">
-                  <div class="card-content">
-                    <div class="card-title">质量评分</div>
-                    <div class="score-display">
-                      <span class="score-value">{{ summaryData?.totalScore || 0 }}</span>
-                      <el-tag size="small" :type="scoreTagType">
-                        {{ scoreLevel }}
-                      </el-tag>
-                    </div>
-                    <el-progress 
-                      :percentage="Math.min(summaryData?.totalScore || 0, 100)" 
-                      :color="scoreColor"
-                      :stroke-width="6"
-                    />
-                  </div>
-                </el-card>
-              </el-col>
-              <el-col :xs="12" :sm="6" :md="6">
-                <el-card class="overview-card">
-                  <div class="card-content">
-                    <div class="card-title">完整率</div>
-                    <div class="metric-value">{{ summaryData?.completenessRate || 0 }}%</div>
-                    <el-progress 
-                      :percentage="summaryData?.completenessRate || 0" 
-                      type="success"
-                      :stroke-width="6"
-                    />
-                  </div>
-                </el-card>
-              </el-col>
-              <el-col :xs="12" :sm="6" :md="6">
-                <el-card class="overview-card">
-                  <div class="card-content">
-                    <div class="card-title">准确率</div>
-                    <div class="metric-value">{{ summaryData?.accuracyRate || 0 }}%</div>
-                    <el-progress 
-                      :percentage="summaryData?.accuracyRate || 0" 
-                      type="warning"
-                      :stroke-width="6"
-                    />
-                  </div>
-                </el-card>
-              </el-col>
-              <el-col :xs="12" :sm="6" :md="6">
-                <el-card class="overview-card">
-                  <div class="card-content">
-                    <div class="card-title">及时性</div>
-                    <div class="metric-value">{{ summaryData?.freshnessScore || 0 }}</div>
-                    <el-progress 
-                      :percentage="summaryData?.freshnessScore || 0" 
-                      type="info"
-                      :stroke-width="6"
-                    />
-                  </div>
-                </el-card>
-              </el-col>
-            </el-row>
-          </div>
+      <div class="overview-card">
+        <div class="overview-header">
+          <span class="overview-title">数据准确性</span>
+          <span class="status-icon" :class="accuracyStatus">{{ getStatusIcon(accuracyStatus) }}</span>
+        </div>
+        <div class="overview-value">{{ dataQuality.accuracy }}%</div>
+        <div class="progress-bar">
+          <div class="progress-fill" :style="{ width: dataQuality.accuracy + '%' }" :class="accuracyStatus"></div>
+        </div>
+      </div>
 
-          <!-- 核心指标区域 -->
-          <div class="core-metrics-section">
-            <el-row :gutter="20">
-              <el-col :xs="24" :md="12">
-                <el-card class="metrics-card">
-                  <template #header>
-                    <div class="card-header">
-                      <span>表健康状态</span>
-                      <el-button type="primary" size="small" @click="exportTableStatus">
-                        导出
-                      </el-button>
-                    </div>
-                  </template>
-                  <div class="card-body">
-                    <el-table v-if="tableHealthData.length > 0" :data="tableHealthData" stripe style="width: 100%">
-                      <el-table-column prop="tableName" label="表名" width="180" />
-                      <el-table-column prop="healthScore" label="健康分">
-                        <template #default="scope">
-                          <el-tag :type="getHealthTagType(scope.row.healthScore)">
-                            {{ scope.row.healthScore }}
-                          </el-tag>
-                        </template>
-                      </el-table-column>
-                      <el-table-column prop="recordCount" label="记录数" />
-                      <el-table-column prop="status" label="状态">
-                        <template #default="scope">
-                          <el-tag :type="scope.row.status === 'normal' ? 'success' : 'danger'">
-                            {{ scope.row.status === 'normal' ? '正常' : '异常' }}
-                          </el-tag>
-                        </template>
-                      </el-table-column>
-                    </el-table>
-                    <el-empty v-else description="暂无表健康状态数据" :image-size="80" />
-                  </div>
-                </el-card>
-              </el-col>
-              <el-col :xs="24" :md="12">
-                <el-card class="metrics-card">
-                  <template #header>
-                    <div class="card-header">
-                      <span>质量历史趋势</span>
-                    </div>
-                  </template>
-                  <div class="card-body">
-                    <LineChart v-if="historyChartOption" :option="historyChartOption" height="300px" />
-                    <el-empty v-else description="暂无历史趋势数据" :image-size="80" />
-                  </div>
-                </el-card>
-              </el-col>
-            </el-row>
-          </div>
+      <div class="overview-card">
+        <div class="overview-header">
+          <span class="overview-title">数据一致性</span>
+          <span class="status-icon" :class="consistencyStatus">{{ getStatusIcon(consistencyStatus) }}</span>
+        </div>
+        <div class="overview-value">{{ dataQuality.consistency }}%</div>
+        <div class="progress-bar">
+          <div class="progress-fill" :style="{ width: dataQuality.consistency + '%' }" :class="consistencyStatus"></div>
+        </div>
+      </div>
 
-          <!-- 告警信息 -->
-          <div class="alerts-section">
-            <el-card class="alerts-card">
-              <template #header>
-                <div class="card-header">
-                  <span>告警信息</span>
-                  <el-tag v-if="alertsData.length > 0" type="danger" size="small">
-                    {{ alertsData.length }}
-                  </el-tag>
-                </div>
+      <div class="overview-card">
+        <div class="overview-header">
+          <span class="overview-title">检测异常数</span>
+          <span class="status-icon warning">⚠</span>
+        </div>
+        <div class="overview-value error">{{ dataQuality.anomalyCount }}</div>
+        <div class="overview-desc">共发现 {{ dataQuality.anomalyCount }} 个数据异常</div>
+      </div>
+    </div>
+
+    <div class="chart-row">
+      <div class="chart-panel">
+        <div class="panel-header">
+          <h3>数据质量趋势</h3>
+          <span class="time-range">最近7天</span>
+        </div>
+        <div class="chart-wrapper">
+          <v-chart :option="qualityTrendOption" autoresize />
+        </div>
+      </div>
+
+      <div class="chart-panel">
+        <div class="panel-header">
+          <h3>异常类型分布</h3>
+        </div>
+        <div class="chart-wrapper">
+          <v-chart :option="anomalyTypeOption" autoresize />
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-row">
+      <div class="chart-panel full-width">
+        <div class="panel-header">
+          <h3>异常详情列表</h3>
+          <el-select v-model="filterType" size="small">
+            <el-option label="全部" value="all" />
+            <el-option label="缺失值" value="missing" />
+            <el-option label="异常值" value="anomaly" />
+            <el-option label="重复数据" value="duplicate" />
+            <el-option label="格式错误" value="format" />
+          </el-select>
+        </div>
+        <div class="table-wrapper">
+          <el-table :data="filteredAnomalies" border>
+            <el-table-column prop="id" label="ID" width="80" />
+            <el-table-column prop="type" label="异常类型" width="120">
+              <template #default="scope">
+                <el-tag :type="getTagType(scope.row.type)">{{ getTypeName(scope.row.type) }}</el-tag>
               </template>
-              <div class="card-body">
-                <el-timeline v-if="alertsData.length > 0">
-                  <el-timeline-item 
-                    v-for="alert in alertsData.slice(0, 5)" 
-                    :key="alert.id"
-                    type="danger"
-                    :timestamp="alert.timestamp"
-                  >
-                    {{ alert.message }}
-                  </el-timeline-item>
-                </el-timeline>
-                <el-button v-if="alertsData.length > 5" type="text" @click="showAllAlerts">
-                  查看全部告警
-                </el-button>
-                <el-empty v-else description="暂无告警信息" :image-size="80" />
-              </div>
-            </el-card>
-          </div>
-
-          <!-- 质量详情列表 -->
-          <div class="detail-list-section">
-            <el-card class="detail-card">
-              <template #header>
-                <div class="card-header">
-                  <span>质量详情列表</span>
-                  <el-tabs v-model="activeTab" size="small">
-                    <el-tab-pane label="完整性" name="completeness" />
-                    <el-tab-pane label="唯一性" name="uniqueness" />
-                    <el-tab-pane label="一致性" name="consistency" />
-                    <el-tab-pane label="范围" name="range" />
-                    <el-tab-pane label="及时性" name="freshness" />
-                  </el-tabs>
-                </div>
+            </el-table-column>
+            <el-table-column prop="tableName" label="表名" width="150" />
+            <el-table-column prop="fieldName" label="字段名" width="120" />
+            <el-table-column prop="description" label="描述" />
+            <el-table-column prop="severity" label="严重程度" width="100">
+              <template #default="scope">
+                <el-tag :type="getSeverityType(scope.row.severity)">{{ scope.row.severity }}</el-tag>
               </template>
-              <div class="card-body">
-                <el-table v-if="detailTableData.length > 0" :data="detailTableData" stripe style="width: 100%">
-                  <el-table-column prop="fieldName" label="字段名" width="180" />
-                  <el-table-column prop="checkType" label="检测类型" />
-                  <el-table-column prop="checkValue" label="检测值" />
-                  <el-table-column prop="threshold" label="阈值" />
-                  <el-table-column prop="status" label="状态">
-                    <template #default="scope">
-                      <el-tag :type="scope.row.status === 'pass' ? 'success' : 'warning'">
-                        {{ scope.row.status === 'pass' ? '通过' : '警告' }}
-                      </el-tag>
-                    </template>
-                  </el-table-column>
-                </el-table>
-                <el-empty v-else description="暂无详情数据" :image-size="80" />
-              </div>
-            </el-card>
-          </div>
+            </el-table-column>
+            <el-table-column prop="detectedAt" label="检测时间" width="150" />
+            <el-table-column label="操作" width="100">
+              <template #default>
+                <el-button size="mini" type="text">处理</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
-      </el-skeleton>
-    </el-card>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import type { EChartsOption } from 'echarts'
-import { qualityApi } from '@/api/quality'
-import LineChart from '@/components/charts/LineChart.vue'
+import { ref, computed } from 'vue'
+import VChart from 'vue-echarts'
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { LineChart, PieChart } from 'echarts/charts'
+import { TitleComponent, TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
 
-// 状态定义
-const loading = ref(false)
-const error = ref(false)
-const errorMessage = ref('')
-const selectedDate = ref<string>('2025-03-31')
-const summaryData = ref<any>(null)
-const tableHealthData = ref<any[]>([])
-const historyChartData = ref<any[]>([])
-const alertsData = ref<any[]>([])
-const detailTableData = ref<any[]>([])
-const activeTab = ref('completeness')
+use([CanvasRenderer, LineChart, PieChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
-// 计算属性
-const scoreClass = computed(() => {
-  const score = summaryData.value?.totalScore || 0
-  if (score >= 90) return 'score-excellent'
-  if (score >= 70) return 'score-good'
-  if (score >= 60) return 'score-warning'
-  return 'score-danger'
+const selectedDate = ref('today')
+const filterType = ref('all')
+
+const dataQuality = ref({
+  completeness: 98.5,
+  accuracy: 95.2,
+  consistency: 96.8,
+  anomalyCount: 12
 })
 
-const scoreLevel = computed(() => {
-  const score = summaryData.value?.totalScore || 0
-  if (score >= 90) return '优秀'
-  if (score >= 70) return '良好'
-  if (score >= 60) return '一般'
-  return '较差'
+const completenessStatus = computed(() => {
+  if (dataQuality.value.completeness >= 95) return 'good'
+  if (dataQuality.value.completeness >= 80) return 'warning'
+  return 'error'
 })
 
-const scoreTagType = computed(() => {
-  const score = summaryData.value?.totalScore || 0
-  if (score >= 90) return 'success'
-  if (score >= 70) return 'primary'
-  if (score >= 60) return 'warning'
-  return 'danger'
+const accuracyStatus = computed(() => {
+  if (dataQuality.value.accuracy >= 95) return 'good'
+  if (dataQuality.value.accuracy >= 80) return 'warning'
+  return 'error'
 })
 
-const scoreColor = computed(() => {
-  const score = summaryData.value?.totalScore || 0
-  if (score >= 90) return '#67c23a'
-  if (score >= 70) return '#409eff'
-  if (score >= 60) return '#e6a23c'
-  return '#f56c6c'
+const consistencyStatus = computed(() => {
+  if (dataQuality.value.consistency >= 95) return 'good'
+  if (dataQuality.value.consistency >= 80) return 'warning'
+  return 'error'
 })
 
-// 图表配置项
-const historyChartOption = computed<EChartsOption | null>(() => {
-  if (!historyChartData.value || historyChartData.value.length === 0) return null
-  return {
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'cross' }
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: historyChartData.value.map(item => item.date)
-    },
-    yAxis: {
-      type: 'value',
-      name: '评分'
-    },
-    series: [{
-      name: '质量评分',
-      type: 'line',
-      smooth: true,
-      data: historyChartData.value.map(item => item.score)
-    }]
-  }
-})
-
-// 方法
-const getHealthTagType = (score: number) => {
-  if (score >= 90) return 'success'
-  if (score >= 70) return 'primary'
-  return 'danger'
-}
-
-const fetchQualityData = async () => {
-  loading.value = true
-  error.value = false
-  
-  try {
-    const [reportsRes, scoreRes, alertsRes] = await Promise.all([
-      qualityApi.getQualityReports({ startDate: selectedDate.value, endDate: selectedDate.value }),
-      qualityApi.getDailyQualityScore({ startDate: selectedDate.value, endDate: selectedDate.value }),
-      qualityApi.getAnomalyAlerts({ startDate: selectedDate.value, endDate: selectedDate.value })
-    ])
-
-    summaryData.value = reportsRes[0] || {}
-    tableHealthData.value = []
-    historyChartData.value = scoreRes || []
-    alertsData.value = alertsRes || []
-
-    await fetchDetailData()
-  } catch (err: any) {
-    error.value = true
-    errorMessage.value = err.message || '数据加载失败'
-  } finally {
-    loading.value = false
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case 'good': return '✓'
+    case 'warning': return '⚠'
+    default: return '✗'
   }
 }
 
-const fetchDetailData = async () => {
-  try {
-    let res: any[] = []
-    switch (activeTab.value) {
-      case 'completeness':
-        const nullCheckRes = await qualityApi.getNullCheckResults(selectedDate.value)
-        res = Object.entries(nullCheckRes).map(([field, count]) => ({
-          field,
-          count
-        }))
-        break
-      case 'uniqueness':
-        const recordCheckRes = await qualityApi.getRecordCheckResults(selectedDate.value)
-        res = Array.isArray(recordCheckRes) ? recordCheckRes : []
-        break
-      case 'consistency':
-        res = []
-        break
-      case 'range':
-        res = []
-        break
-      case 'freshness':
-        res = []
-        break
-    }
-    detailTableData.value = res || []
-  } catch (error) {
-    console.error('获取详情数据失败', error)
+const days = computed(() => {
+  const labels: string[] = []
+  const now = new Date()
+  for (let i = 6; i >= 0; i--) {
+    const day = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
+    labels.push(`${day.getMonth() + 1}/${day.getDate()}`)
   }
-}
-
-const exportTableStatus = async () => {
-  try {
-    await ElMessageBox.confirm(
-      '确定要导出表健康状态数据吗？',
-      '导出数据',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'info'
-      }
-    )
-    
-    ElMessage.success('导出功能已触发')
-  } catch (error) {
-    // 用户取消
-  }
-}
-
-const showAllAlerts = () => {
-  ElMessage.info('查看全部告警功能开发中')
-}
-
-// 监听标签页变化
-watch(activeTab, () => {
-  fetchDetailData()
+  return labels
 })
 
-onMounted(() => {
-  fetchQualityData()
+const qualityTrendOption = computed(() => ({
+  tooltip: { trigger: 'axis' },
+  legend: { data: ['完整性', '准确性', '一致性'], bottom: 0 },
+  grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+  xAxis: { type: 'category', data: days.value },
+  yAxis: { type: 'value', min: 80, max: 100 },
+  series: [
+    { name: '完整性', type: 'line', smooth: true, data: [97, 98, 96, 99, 98, 97, 98.5] },
+    { name: '准确性', type: 'line', smooth: true, data: [94, 95, 93, 96, 95, 94, 95.2] },
+    { name: '一致性', type: 'line', smooth: true, data: [96, 97, 95, 98, 97, 96, 96.8] }
+  ]
+}))
+
+const anomalyTypeOption = computed(() => ({
+  tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
+  series: [{
+    type: 'pie',
+    radius: ['40%', '70%'],
+    center: ['50%', '50%'],
+    data: [
+      { value: 5, name: '缺失值' },
+      { value: 3, name: '异常值' },
+      { value: 2, name: '重复数据' },
+      { value: 2, name: '格式错误' }
+    ]
+  }]
+}))
+
+const anomalies = ref([
+  { id: 1, type: 'missing', tableName: 'trip_data', fieldName: 'passenger_count', description: '乘客数字段存在空值', severity: '中等', detectedAt: '2025-04-01 10:30:00' },
+  { id: 2, type: 'anomaly', tableName: 'trip_data', fieldName: 'fare_amount', description: '费用超出正常范围', severity: '严重', detectedAt: '2025-04-01 09:15:00' },
+  { id: 3, type: 'duplicate', tableName: 'payment_data', fieldName: 'transaction_id', description: '存在重复交易记录', severity: '低', detectedAt: '2025-04-01 08:45:00' },
+  { id: 4, type: 'format', tableName: 'trip_data', fieldName: 'pickup_time', description: '时间格式不正确', severity: '中等', detectedAt: '2025-04-01 07:20:00' },
+  { id: 5, type: 'missing', tableName: 'driver_data', fieldName: 'license_number', description: '驾驶证号码缺失', severity: '严重', detectedAt: '2025-04-01 06:00:00' }
+])
+
+const filteredAnomalies = computed(() => {
+  if (filterType.value === 'all') return anomalies.value
+  return anomalies.value.filter(a => a.type === filterType.value)
 })
+
+const getTagType = (type: string) => {
+  const types: Record<string, string> = {
+    missing: 'warning',
+    anomaly: 'danger',
+    duplicate: 'info',
+    format: 'primary'
+  }
+  return types[type] || 'default'
+}
+
+const getTypeName = (type: string) => {
+  const names: Record<string, string> = {
+    missing: '缺失值',
+    anomaly: '异常值',
+    duplicate: '重复数据',
+    format: '格式错误'
+  }
+  return names[type] || type
+}
+
+const getSeverityType = (severity: string) => {
+  const types: Record<string, string> = {
+    '严重': 'danger',
+    '中等': 'warning',
+    '低': 'info'
+  }
+  return types[severity] || 'default'
+}
+
+const refreshData = () => {
+  console.log('Refreshing data quality...')
+}
 </script>
 
-<style scoped>
-.quality-page {
-  padding: 0;
+<style lang="scss" scoped>
+.quality-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.quality-card {
-  margin-bottom: 20px;
-}
-
-.card-header {
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  border-radius: 12px;
+  color: white;
 }
 
-.card-header h2 {
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
   margin: 0;
-  font-size: 18px;
-  font-weight: bold;
-  color: #333;
 }
 
 .header-controls {
@@ -435,107 +281,116 @@ onMounted(() => {
   gap: 12px;
 }
 
-.date-picker {
-  width: 180px;
-}
-
-.error-container {
-  text-align: center;
-  padding: 40px 0;
-}
-
-.error-alert {
-  max-width: 400px;
-  margin: 0 auto 20px;
-}
-
-.retry-button {
-  margin-top: 16px;
-}
-
-.overview-section {
-  margin: 20px 0;
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
 }
 
 .overview-card {
-  height: 150px;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.overview-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-}
-
-.card-content {
-  width: 100%;
-  padding: 0 20px;
-}
-
-.card-title {
-  font-size: 14px;
-  color: #606266;
-  margin-bottom: 8px;
-}
-
-.score-display {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.score-value {
-  font-size: 24px;
-  font-weight: bold;
-  color: #303133;
-}
-
-.metric-value {
-  font-size: 20px;
-  font-weight: bold;
-  color: #303133;
   margin-bottom: 12px;
 }
 
-.core-metrics-section {
-  margin: 20px 0;
+.overview-title {
+  font-size: 14px;
+  color: #6b7280;
 }
 
-.metrics-card {
-  margin-bottom: 20px;
+.status-icon {
+  font-size: 20px;
+  font-weight: bold;
+
+  &.good { color: #67c23a; }
+  &.warning { color: #f59e0b; }
+  &.error { color: #f56c6c; }
 }
 
-.card-body {
-  padding: 20px 0;
+.overview-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 8px;
+
+  &.error {
+    color: #f56c6c;
+  }
 }
 
-.alerts-section {
-  margin: 20px 0;
+.overview-desc {
+  font-size: 12px;
+  color: #6b7280;
 }
 
-.alerts-card {
-  margin-bottom: 20px;
+.progress-bar {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
 }
 
-.detail-list-section {
-  margin: 20px 0;
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+
+  &.good { background: linear-gradient(90deg, #67c23a, #85ce61); }
+  &.warning { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+  &.error { background: linear-gradient(90deg, #f56c6c, #f87171); }
 }
 
-.detail-card {
-  margin-bottom: 20px;
+.chart-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
 }
 
-.score-excellent {
-  border-left: 4px solid #67c23a;
+.chart-panel {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
 }
 
-.score-good {
-  border-left: 4px solid #409eff;
+.chart-panel.full-width {
+  grid-column: span 2;
 }
 
-.score-warning {
-  border-left: 4px solid #e6a23c;
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f3f4f6;
 }
 
-.score-danger {
-  border-left: 4px solid #f56c6c;
+.panel-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.time-range {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.chart-wrapper {
+  padding: 20px;
+  height: 280px;
+}
+
+.table-wrapper {
+  padding: 20px;
 }
 </style>

@@ -151,14 +151,28 @@ public class AnalysisServiceImpl implements AnalysisService {
                 {"1", "Creative Mobile Technologies"}, {"2", "VeriFone Inc"}
         };
 
-        for (String[] vendor : vendorData) {
+        // 第一步：生成订单数并计算总订单数
+        int[] counts = new int[vendorData.length];
+        int totalTrips = 0;
+        for (int i = 0; i < vendorData.length; i++) {
+            counts[i] = (int) (Math.random() * 100000) + 50000;
+            totalTrips += counts[i];
+        }
+
+        // 第二步：计算市场份额并构建结果
+        for (int i = 0; i < vendorData.length; i++) {
             Map<String, Object> v = new HashMap<>();
-            v.put("vendor_id", vendor[0]);
-            v.put("vendor_name", vendor[1]);
-            v.put("trip_count", (int) (Math.random() * 100000) + 50000);
-            v.put("total_amount", Math.round(Math.random() * 1000000) / 100.0);
-            v.put("avg_trip_distance", Math.round(Math.random() * 10 * 100) / 100.0);
-            v.put("market_share", Math.round(Math.random() * 50 * 100) / 100.0);
+            v.put("vendor_id", vendorData[i][0]);
+            v.put("vendor_name", vendorData[i][1]);
+            v.put("trip_count", counts[i]);
+            double avgDistance = Math.round(Math.random() * 10 * 100) / 100.0;
+            v.put("avg_trip_distance", avgDistance);
+            // 根据实际订单数计算市场份额
+            double marketShare = counts[i] * 100.0 / totalTrips;
+            v.put("market_share", Math.round(marketShare * 100) / 100.0);
+            // 根据订单数和平均金额计算总金额
+            double avgAmount = 15 + Math.random() * 10;
+            v.put("total_amount", Math.round(counts[i] * avgAmount * 100) / 100.0);
             vendors.add(v);
         }
         return vendors;
@@ -187,16 +201,36 @@ public class AnalysisServiceImpl implements AnalysisService {
                 {"4", "争议", "dispute"}
         };
 
-        int total = 100;
-        for (String[] payment : paymentData) {
+        // 第一步：生成订单数并计算总订单数
+        int[] counts = new int[paymentData.length];
+        int totalTrips = 0;
+        for (int i = 0; i < paymentData.length; i++) {
+            // 信用卡占比最高，现金次之，无消费和争议较少
+            if (i == 0) {
+                counts[i] = (int) (Math.random() * 50000) + 80000; // 信用卡: 80000-130000
+            } else if (i == 1) {
+                counts[i] = (int) (Math.random() * 30000) + 40000; // 现金: 40000-70000
+            } else if (i == 2) {
+                counts[i] = (int) (Math.random() * 5000) + 5000;   // 无消费: 5000-10000
+            } else {
+                counts[i] = (int) (Math.random() * 3000) + 2000;   // 争议: 2000-5000
+            }
+            totalTrips += counts[i];
+        }
+
+        // 第二步：计算占比并构建结果
+        for (int i = 0; i < paymentData.length; i++) {
             Map<String, Object> p = new HashMap<>();
-            p.put("payment_type", payment[0]);
-            p.put("payment_desc", payment[1]);
-            p.put("payment_code", payment[2]);
-            int count = (int) (Math.random() * 30) + 10;
-            p.put("trip_count", count);
-            p.put("percentage", Math.round(count * 100.0 / total * 100) / 100.0);
-            p.put("total_amount", Math.round(Math.random() * 100000 * 100) / 100.0);
+            p.put("payment_type", paymentData[i][0]);
+            p.put("payment_desc", paymentData[i][1]);
+            p.put("payment_code", paymentData[i][2]);
+            p.put("trip_count", counts[i]);
+            // 根据实际总订单数计算占比（正确的计算方式）
+            double percentage = counts[i] * 100.0 / totalTrips;
+            p.put("percentage", Math.round(percentage * 100) / 100.0);
+            // 根据订单数和平均金额计算总金额
+            double avgAmount = (i == 0) ? 15 + Math.random() * 10 : 10 + Math.random() * 15;
+            p.put("total_amount", Math.round(counts[i] * avgAmount * 100) / 100.0);
             payments.add(p);
         }
         return payments;
@@ -220,11 +254,24 @@ public class AnalysisServiceImpl implements AnalysisService {
         List<Map<String, Object>> distribution = new ArrayList<>();
         String[] ranges = {"0-2", "2-5", "5-10", "10-15", "15-20", "20+"};
 
-        for (String range : ranges) {
+        // 第一步：生成订单数并计算总订单数
+        int[] counts = new int[ranges.length];
+        int totalTrips = 0;
+        for (int i = 0; i < ranges.length; i++) {
+            // 中等距离的订单数较多，极短和极长距离的订单数较少
+            int baseCount = (i >= 1 && i <= 3) ? 20000 : 10000;
+            counts[i] = (int) (Math.random() * baseCount) + 5000;
+            totalTrips += counts[i];
+        }
+
+        // 第二步：计算占比并构建结果
+        for (int i = 0; i < ranges.length; i++) {
             Map<String, Object> d = new HashMap<>();
-            d.put("distance_range", range);
-            d.put("trip_count", (int) (Math.random() * 20000) + 5000);
-            d.put("percentage", Math.round(Math.random() * 30 * 100) / 100.0);
+            d.put("distance_range", ranges[i]);
+            d.put("trip_count", counts[i]);
+            // 根据实际订单数计算占比
+            double percentage = counts[i] * 100.0 / totalTrips;
+            d.put("percentage", Math.round(percentage * 100) / 100.0);
             distribution.add(d);
         }
         return distribution;
@@ -234,11 +281,24 @@ public class AnalysisServiceImpl implements AnalysisService {
         List<Map<String, Object>> distribution = new ArrayList<>();
         String[] ranges = {"0-10", "10-20", "20-30", "30-45", "45-60", "60+"};
 
-        for (String range : ranges) {
+        // 第一步：生成订单数并计算总订单数
+        int[] counts = new int[ranges.length];
+        int totalTrips = 0;
+        for (int i = 0; i < ranges.length; i++) {
+            // 中等时长的订单数较多，极短和极长时间的订单数较少
+            int baseCount = (i >= 1 && i <= 3) ? 20000 : 10000;
+            counts[i] = (int) (Math.random() * baseCount) + 5000;
+            totalTrips += counts[i];
+        }
+
+        // 第二步：计算占比并构建结果
+        for (int i = 0; i < ranges.length; i++) {
             Map<String, Object> d = new HashMap<>();
-            d.put("duration_range", range);
-            d.put("trip_count", (int) (Math.random() * 20000) + 5000);
-            d.put("percentage", Math.round(Math.random() * 30 * 100) / 100.0);
+            d.put("duration_range", ranges[i]);
+            d.put("trip_count", counts[i]);
+            // 根据实际订单数计算占比
+            double percentage = counts[i] * 100.0 / totalTrips;
+            d.put("percentage", Math.round(percentage * 100) / 100.0);
             distribution.add(d);
         }
         return distribution;

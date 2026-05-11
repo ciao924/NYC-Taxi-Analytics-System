@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.taxi.analytics.modules.analysis.mapper.AnalysisMapper">
+
+    <!-- 机场统计 -->
+    <select id="selectAirportStatistics" resultType="map">
+        SELECT 
+            airport_trip as airport_code,
+            '肯尼迪国际机场' as airport_name,
+            SUM(trip_count) as trip_count,
+            0.0 as total_amount,
+            0.0 as avg_amount,
+            0.0 as avg_distance
+        FROM analysis_airport
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY airport_trip
+        UNION ALL
+        SELECT 
+            'LGA' as airport_code,
+            '拉瓜迪亚机场' as airport_name,
+            SUM(trip_count) as trip_count,
+            0.0 as total_amount,
+            0.0 as avg_amount,
+            0.0 as avg_distance
+        FROM analysis_airport
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        AND airport_trip = 'LGA'
+        GROUP BY airport_trip
+        UNION ALL
+        SELECT 
+            'EWR' as airport_code,
+            '纽瓦克自由国际机场' as airport_name,
+            SUM(trip_count) as trip_count,
+            0.0 as total_amount,
+            0.0 as avg_amount,
+            0.0 as avg_distance
+        FROM analysis_airport
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        AND airport_trip = 'EWR'
+        GROUP BY airport_trip
+    </select>
+
+    <!-- 机场详细统计 -->
+    <select id="selectAirportDetailedStatistics" resultType="map">
+        SELECT 
+            airport_trip as airport_code,
+            0 as hour,
+            SUM(trip_count) as trip_count,
+            false as peak_hour
+        FROM analysis_airport
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="airportCode != 'all'">AND airport_trip = #{airportCode}</if>
+        GROUP BY airport_trip
+    </select>
+
+    <!-- 供应商对比 -->
+    <select id="selectVendorComparison" resultType="map">
+        SELECT 
+            CASE 
+                WHEN vendor_name = 'Creative Mobile Technologies' THEN '1' 
+                WHEN vendor_name = 'VeriFone Inc' THEN '2'
+                ELSE '1' 
+            END as vendor_id,
+            vendor_name,
+            SUM(trip_count) as trip_count,
+            SUM(total_revenue) as total_amount,
+            AVG(avg_distance) as avg_trip_distance,
+            0.0 as market_share
+        FROM analysis_vendor
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY vendor_name
+    </select>
+
+    <!-- 供应商趋势 -->
+    <select id="selectVendorTrend" resultType="map">
+        SELECT 
+            stat_date as date,
+            SUM(trip_count) as trip_count,
+            CASE 
+                WHEN vendor_name = 'Creative Mobile Technologies' THEN '1' 
+                WHEN vendor_name = 'VeriFone Inc' THEN '2'
+                ELSE '1' 
+            END as vendor_id
+        FROM analysis_vendor
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="vendorId != 'all'">AND vendor_name = (CASE WHEN #{vendorId} = '1' THEN 'Creative Mobile Technologies' ELSE 'VeriFone Inc' END)</if>
+        GROUP BY stat_date
+        ORDER BY stat_date
+    </select>
+
+    <!-- 支付方式分布 - 关键修复：将trip_ratio映射为percentage -->
+    <select id="selectPaymentDistribution" resultType="map">
+        SELECT 
+            CASE 
+                WHEN payment_name = '信用卡' THEN '1'
+                WHEN payment_name = '现金' THEN '2'
+                WHEN payment_name = '无消费' THEN '3'
+                WHEN payment_name = '争议' THEN '4'
+                ELSE '1'
+            END as payment_type,
+            payment_name as payment_desc,
+            CASE 
+                WHEN payment_name = '信用卡' THEN 'credit_card'
+                WHEN payment_name = '现金' THEN 'cash'
+                WHEN payment_name = '无消费' THEN 'no_charge'
+                WHEN payment_name = '争议' THEN 'dispute'
+                ELSE 'credit_card'
+            END as payment_code,
+            SUM(trip_count) as trip_count,
+            AVG(trip_ratio) as percentage,
+            SUM(total_amount) as total_amount
+        FROM analysis_payment_analysis
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY payment_name
+    </select>
+
+    <!-- 支付方式趋势 -->
+    <select id="selectPaymentTrend" resultType="map">
+        SELECT 
+            stat_date as date,
+            SUM(CASE WHEN payment_name = '信用卡' THEN trip_count ELSE 0 END) * 100.0 / NULLIF(SUM(trip_count), 0) as credit_card_pct,
+            SUM(CASE WHEN payment_name = '现金' THEN trip_count ELSE 0 END) * 100.0 / NULLIF(SUM(trip_count), 0) as cash_pct
+        FROM analysis_payment_analysis
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY stat_date
+        ORDER BY stat_date
+    </select>
+
+    <!-- 距离分布 -->
+    <select id="selectDistanceDistribution" resultType="map">
+        SELECT 
+            distance_range,
+            SUM(trip_count) as trip_count,
+            0.0 as percentage
+        FROM analysis_distance_distribution
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY distance_range
+        ORDER BY 
+            CASE distance_range 
+                WHEN '0-2' THEN 1
+                WHEN '2-5' THEN 2
+                WHEN '5-10' THEN 3
+                WHEN '10-15' THEN 4
+                WHEN '15-20' THEN 5
+                WHEN '20+' THEN 6
+                ELSE 7
+            END
+    </select>
+
+    <!-- 时长分布 -->
+    <select id="selectDurationDistribution" resultType="map">
+        SELECT 
+            duration_range,
+            SUM(trip_count) as trip_count,
+            0.0 as percentage
+        FROM analysis_duration_distribution
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY duration_range
+        ORDER BY 
+            CASE duration_range 
+                WHEN '0-10' THEN 1
+                WHEN '10-20' THEN 2
+                WHEN '20-30' THEN 3
+                WHEN '30-45' THEN 4
+                WHEN '45-60' THEN 5
+                WHEN '60+' THEN 6
+                ELSE 7
+            END
+    </select>
+
+</mapper>

@@ -3,7 +3,7 @@
     <div class="kpi-header">
       <div class="kpi-title">{{ title }}</div>
       <el-tooltip v-if="tooltip" :content="tooltip" placement="top">
-        <el-icon class="kpi-info-icon"><InfoFilled /></el-icon>
+        <span class="kpi-info-icon">?</span>
       </el-tooltip>
     </div>
     
@@ -17,15 +17,13 @@
       <div class="kpi-trend-item" v-if="trendValue !== undefined">
         <span class="trend-label">日环比</span>
         <span class="trend-value" :class="trendValue >= 0 ? 'up' : 'down'">
-          <el-icon><CaretTop v-if="trendValue >= 0" /><CaretBottom v-else /></el-icon>
-          {{ Math.abs(trendValue) }}%
+          {{ trendValue >= 0 ? '↑' : '↓' }}{{ Math.abs(trendValue) }}%
         </span>
       </div>
       <div class="kpi-trend-item" v-if="weeklyValue !== undefined">
         <span class="trend-label">周同比</span>
         <span class="trend-value" :class="weeklyValue >= 0 ? 'up' : 'down'">
-          <el-icon><CaretTop v-if="weeklyValue >= 0" /><CaretBottom v-else /></el-icon>
-          {{ Math.abs(weeklyValue) }}%
+          {{ weeklyValue >= 0 ? '↑' : '↓' }}{{ Math.abs(weeklyValue) }}%
         </span>
       </div>
     </div>
@@ -41,7 +39,6 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue'
-import { InfoFilled, CaretTop, CaretBottom } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   title: string

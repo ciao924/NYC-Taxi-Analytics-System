@@ -10,9 +10,11 @@ public class Result<T> implements Serializable {
     private String message;
     private T data;
     private Long timestamp;
+    private Boolean success;
     
     public Result() {
         this.timestamp = System.currentTimeMillis();
+        this.success = false;
     }
     
     public Integer getCode() {
@@ -51,6 +53,15 @@ public class Result<T> implements Serializable {
         return this;
     }
     
+    public Boolean getSuccess() {
+        return success;
+    }
+    
+    public Result<T> setSuccess(Boolean success) {
+        this.success = success;
+        return this;
+    }
+    
     public static <T> Result<T> success() {
         return success(null);
     }
@@ -60,6 +71,7 @@ public class Result<T> implements Serializable {
         result.setCode(ResultCode.SUCCESS.getCode());
         result.setMessage(ResultCode.SUCCESS.getMessage());
         result.setData(data);
+        result.setSuccess(true);
         return result;
     }
     
@@ -71,6 +83,7 @@ public class Result<T> implements Serializable {
         Result<T> result = new Result<>();
         result.setCode(code);
         result.setMessage(message);
+        result.setSuccess(false);
         return result;
     }
 }

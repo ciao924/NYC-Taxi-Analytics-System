@@ -1,0 +1,18 @@
+{
+  "name": "@taxi-analytics/shared-types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for taxi analytics system",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["taxi", "analytics", "types"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

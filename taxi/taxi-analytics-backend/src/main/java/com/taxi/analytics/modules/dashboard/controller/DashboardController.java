@@ -1,6 +1,10 @@
 package com.taxi.analytics.modules.dashboard.controller;
 
 import com.taxi.analytics.common.result.Result;
+import com.taxi.analytics.modules.dashboard.dto.KpiSummaryDTO;
+import com.taxi.analytics.modules.dashboard.dto.TrendDataDTO;
+import com.taxi.analytics.modules.dashboard.dto.HourlyDistributionDTO;
+import com.taxi.analytics.modules.dashboard.dto.PaymentDistributionDTO;
 import com.taxi.analytics.modules.dashboard.service.DashboardKpiService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,7 +30,7 @@ public class DashboardController {
 
     @Operation(summary = "获取KPI汇总卡片数据")
     @GetMapping("/kpi/summary")
-    public Result<Map<String, Object>> getKpiSummary(
+    public Result<KpiSummaryDTO> getKpiSummary(
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
         return Result.success(kpiService.getKpiSummary(startDate, endDate));
@@ -34,7 +38,7 @@ public class DashboardController {
 
     @Operation(summary = "获取核心指标趋势")
     @GetMapping("/kpi/trend")
-    public Result<List<Map<String, Object>>> getKpiTrend(
+    public Result<List<TrendDataDTO>> getKpiTrend(
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
         return Result.success(kpiService.getKpiTrend(startDate, endDate));
@@ -42,7 +46,7 @@ public class DashboardController {
 
     @Operation(summary = "获取小时分布数据")
     @GetMapping("/hourly/distribution")
-    public Result<List<Map<String, Object>>> getHourlyDistribution(
+    public Result<List<HourlyDistributionDTO>> getHourlyDistribution(
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
         return Result.success(kpiService.getHourlyDistribution(startDate, endDate));
@@ -58,7 +62,7 @@ public class DashboardController {
 
     @Operation(summary = "获取支付方式分析")
     @GetMapping("/payment/analysis")
-    public Result<List<Map<String, Object>>> getPaymentAnalysis(
+    public Result<List<PaymentDistributionDTO>> getPaymentAnalysis(
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
         return Result.success(kpiService.getPaymentAnalysis(startDate, endDate));

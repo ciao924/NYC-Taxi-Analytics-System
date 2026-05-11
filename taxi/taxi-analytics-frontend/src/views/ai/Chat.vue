@@ -10,8 +10,8 @@
     <div class="chat-messages" ref="messagesContainer">
       <div v-for="(msg, index) in messages" :key="index" :class="['message', msg.role]">
         <div class="message-avatar">
-          <el-icon v-if="msg.role === 'user'" :size="20"><User /></el-icon>
-          <el-icon v-else :size="20"><ChatDotRound /></el-icon>
+          <span v-if="msg.role === 'user'">U</span>
+          <span v-else>AI</span>
         </div>
         <div class="message-content">
           <div class="message-text" v-if="msg.role === 'user'">{{ msg.content }}</div>
@@ -32,11 +32,11 @@
 
       <div v-if="loading" class="message assistant">
         <div class="message-avatar">
-          <el-icon :size="20"><ChatDotRound /></el-icon>
+          <span>AI</span>
         </div>
         <div class="message-content">
-          <div class="message-text">
-            <el-icon class="is-loading"><Loading /></el-icon>
+          <div class="message-text loading">
+            <span class="loading-spinner"></span>
             AI 正在分析中...
           </div>
         </div>
@@ -53,7 +53,6 @@
       />
       <div class="input-actions">
         <el-button type="primary" :disabled="!inputQuery || loading" @click="sendQuery">
-          <el-icon><Send /></el-icon>
           发送 (Ctrl+Enter)
         </el-button>
         <el-button @click="clearChat">清空对话</el-button>
@@ -84,7 +83,6 @@
 
 <script setup>
 import { ref, reactive, nextTick } from 'vue'
-import { User, ChatDotRound, Send, Loading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 import * as echarts from 'echarts'
@@ -282,6 +280,26 @@ const renderChart = (chartConfig, data) => {
 .message.assistant .message-text {
   background: #fff;
   color: #303133;
+}
+
+.message-text.loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.loading-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .sql-block {

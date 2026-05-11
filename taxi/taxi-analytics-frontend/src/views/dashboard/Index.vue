@@ -1,375 +1,387 @@
 <template>
-  <div class="dashboard-page">
-    <el-card class="dashboard-card">
-      <template #header>
-        <div class="card-header">
-          <h2>数据可视化模块</h2>
-          <div class="header-controls">
-            <el-date-picker
-              v-model="dateRange"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              format="YYYY-MM-DD"
-              value-format="YYYY-MM-DD"
-              @change="fetchDashboardData"
-              class="date-picker"
-            />
-            <el-button type="primary" @click="fetchDashboardData" :loading="loading">
-              查询数据
-            </el-button>
+  <div class="dashboard-container">
+    <div class="dashboard-header">
+      <div class="header-left">
+        <h2 class="page-title">数据看板</h2>
+        <p class="page-subtitle">实时监控出租车运营数据</p>
+      </div>
+      <div class="header-right">
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD"
+          @change="handleDateRangeChange"
+        />
+        <el-button
+          type="primary"
+          @click="refreshData"
+          :loading="loading"
+        >
+          刷新数据
+        </el-button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div
+        v-for="(kpi, index) in kpiList"
+        :key="index"
+        class="kpi-card"
+      >
+        <div class="kpi-indicator" :style="{ backgroundColor: kpi.color }"></div>
+        <div class="kpi-content">
+          <p class="kpi-label">{{ kpi.label }}</p>
+          <p class="kpi-value">{{ formatNumber(kpi.value) }}</p>
+          <p class="kpi-unit">{{ kpi.unit }}</p>
+        </div>
+        <div class="kpi-trend" :class="kpi.growth >= 0 ? 'positive' : 'negative'">
+          <span>{{ kpi.growth >= 0 ? '+' : '' }}{{ kpi.growth }}%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-section">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3 class="chart-title">订单趋势</h3>
+          <div class="chart-actions">
+            <el-button-group>
+              <el-button
+                v-for="period in periods"
+                :key="period.value"
+                :type="activePeriod === period.value ? 'primary' : 'default'"
+                size="small"
+                @click="activePeriod = period.value"
+              >
+                {{ period.label }}
+              </el-button>
+            </el-button-group>
           </div>
         </div>
-      </template>
-
-      <!-- 数据状态 -->
-      <div class="data-status">
-        <el-tag :type="dataStatusType" size="small">
-          {{ dataStatusText }}
-        </el-tag>
-        <span class="update-info">最后更新：{{ lastUpdateTime }}</span>
+        <div class="chart-body">
+          <v-chart :option="trendChartOption" autoresize />
+        </div>
       </div>
 
-      <!-- 加载状态 -->
-      <el-skeleton :loading="loading" animated>
-        <template #template>
-          <el-skeleton-item variant="p" style="width: 100%" />
-          <el-skeleton-item variant="rect" style="height: 120px; margin-top: 16px" />
-          <el-skeleton-item variant="rect" style="height: 300px; margin-top: 16px" />
-        </template>
-
-        <!-- 错误状态 -->
-        <div v-if="error" class="error-container">
-          <el-alert
-            :title="errorMessage"
-            type="error"
-            show-icon
-            :closable="false"
-            class="error-alert"
-          />
-          <el-button type="primary" @click="fetchDashboardData" class="retry-button">
-            重试
-          </el-button>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3 class="chart-title">支付方式分布</h3>
         </div>
-
-        <!-- 空状态 -->
-        <div v-else-if="!kpiData" class="empty-container">
-          <el-empty
-            description="暂无数据"
-            :image-size="120"
-          >
-            <el-button type="primary" @click="fetchDashboardData">
-              查询数据
-            </el-button>
-          </el-empty>
+        <div class="chart-body">
+          <v-chart :option="paymentChartOption" autoresize />
         </div>
+      </div>
+    </div>
 
-        <!-- 数据展示区域 -->
-        <div v-else class="data-display">
-          <!-- KPI 指标卡片区 -->
-          <div class="kpi-section">
-            <el-row :gutter="20">
-              <el-col :xs="12" :sm="6" :md="6">
-                <el-card class="kpi-card">
-                  <div class="kpi-content">
-                    <div class="kpi-title">总订单量</div>
-                    <div class="kpi-value">{{ formatNumber(kpiData.trip_count, 0) }} 单</div>
-                  </div>
-                </el-card>
-              </el-col>
-              <el-col :xs="12" :sm="6" :md="6">
-                <el-card class="kpi-card">
-                  <div class="kpi-content">
-                    <div class="kpi-title">总收入</div>
-                    <div class="kpi-value">¥{{ formatNumber(kpiData.total_revenue, 2) }}</div>
-                  </div>
-                </el-card>
-              </el-col>
-              <el-col :xs="12" :sm="6" :md="6">
-                <el-card class="kpi-card">
-                  <div class="kpi-content">
-                    <div class="kpi-title">平均客单价</div>
-                    <div class="kpi-value">¥{{ formatNumber(kpiData.avg_fare, 2) }}</div>
-                  </div>
-                </el-card>
-              </el-col>
-              <el-col :xs="12" :sm="6" :md="6">
-                <el-card class="kpi-card">
-                  <div class="kpi-content">
-                    <div class="kpi-title">平均里程</div>
-                    <div class="kpi-value">{{ formatNumber(kpiData.avg_distance, 2) }} 英里</div>
-                  </div>
-                </el-card>
-              </el-col>
-            </el-row>
-          </div>
+    <div class="chart-section">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3 class="chart-title">时段分布</h3>
+        </div>
+        <div class="chart-body">
+          <v-chart :option="hourlyChartOption" autoresize />
+        </div>
+      </div>
 
-          <!-- 图表区域 -->
-          <div class="charts-section">
-            <el-card class="chart-card">
-              <template #header>
-                <div class="chart-header">
-                  <span>订单趋势分析</span>
-                  <el-radio-group v-model="trendType" size="small">
-                    <el-radio-button value="trips">订单量</el-radio-button>
-                    <el-radio-button value="revenue">收入</el-radio-button>
-                  </el-radio-group>
-                </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3 class="chart-title">供应商绩效</h3>
+        </div>
+        <div class="chart-body">
+          <el-table :data="vendorData" stripe border>
+            <el-table-column prop="vendorName" label="供应商" />
+            <el-table-column prop="tripCount" label="订单数" />
+            <el-table-column prop="totalRevenue" label="总收入(USD)" />
+            <el-table-column prop="avgFare" label="平均费用(USD)" />
+            <el-table-column prop="rating" label="评分">
+              <template #default="scope">
+                <el-rate :value="scope.row.rating" disabled :max="5" />
               </template>
-              <div class="chart-content">
-                <LineChart v-if="trendOptions" :option="trendOptions" height="300px" />
-                <el-empty v-else description="暂无趋势数据" :image-size="80" />
-              </div>
-            </el-card>
-          </div>
+            </el-table-column>
+          </el-table>
         </div>
-      </el-skeleton>
-    </el-card>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import type { EChartsOption } from 'echarts'
-import { dashboardApi } from '@/api/dashboard'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useDashboardStore } from '@/stores/dashboard'
+import VChart from 'vue-echarts'
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { LineChart, BarChart, PieChart } from 'echarts/charts'
+import {
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent
+} from 'echarts/components'
 
-// 组件引入
-import LineChart from '@/components/charts/LineChart.vue'
+use([CanvasRenderer, LineChart, BarChart, PieChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
-// 状态定义
+const store = useDashboardStore()
 const loading = ref(false)
-const error = ref(false)
-const errorMessage = ref('')
-const kpiData = ref<any>(null)
-const trendData = ref<any[]>([])
-const dataStatus = ref<'normal' | 'updating' | 'delay'>('normal')
-const lastUpdateTime = ref('2025-03-31 02:00:00')
-const trendType = ref<'trips' | 'revenue'>('trips')
+const dateRange = ref(['2025-01-01', '2025-01-07'])
+const activePeriod = ref('7d')
 
-// 日期范围 (默认初始化 Q1 范围)
-const dateRange = ref<[string, string]>(['2025-01-01', '2025-01-07'])
+const periods = [
+  { label: '7天', value: '7d' },
+  { label: '30天', value: '30d' },
+  { label: '90天', value: '90d' }
+]
 
-// 计算属性
-const dataStatusType = computed(() => {
-  const typeMap = {
-    normal: 'success',
-    updating: 'warning',
-    delay: 'danger'
+const kpiList = computed(() => [
+  {
+    label: '总订单数',
+    value: store.kpiSummary?.tripCount || 0,
+    unit: '单',
+    growth: 12.5,
+    color: '#409eff'
+  },
+  {
+    label: '总收入',
+    value: store.kpiSummary?.totalRevenue || 0,
+    unit: 'USD',
+    growth: 8.3,
+    color: '#67c23a'
+  },
+  {
+    label: '平均费用',
+    value: store.kpiSummary?.avgFare || 0,
+    unit: 'USD',
+    growth: -2.1,
+    color: '#e6a23c'
+  },
+  {
+    label: '平均距离',
+    value: store.kpiSummary?.avgDistance || 0,
+    unit: '英里',
+    growth: 3.7,
+    color: '#f56c6c'
   }
-  return typeMap[dataStatus.value]
-})
+])
 
-const dataStatusText = computed(() => {
-  const statusMap = {
-    normal: '数据正常',
-    updating: '数据更新中',
-    delay: '数据延迟'
-  }
-  return statusMap[dataStatus.value]
-})
+const vendorData = ref([
+  { vendorName: 'VTS', tripCount: 12580, totalRevenue: 285670, avgFare: 22.71, rating: 4.5 },
+  { vendorName: 'DDS', tripCount: 9845, totalRevenue: 221430, avgFare: 22.49, rating: 4.3 },
+  { vendorName: 'Green', tripCount: 7632, totalRevenue: 171720, avgFare: 22.50, rating: 4.1 }
+])
 
-// 图表配置项计算属性
-const trendOptions = computed<EChartsOption | null>(() => {
-  if (!trendData.value || trendData.value.length === 0) return null
-  
-  const xAxisData = trendData.value.map(item => item.stat_date)
-  const isTrips = trendType.value === 'trips'
-  
-  const seriesData = trendData.value.map(item => 
-    isTrips ? item.total_trips : item.total_revenue
-  )
-
-  return {
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'cross' }
+const trendChartOption = computed(() => ({
+  tooltip: { trigger: 'axis' },
+  legend: { data: ['订单数', '收入'] },
+  grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+  xAxis: {
+    type: 'category',
+    data: store.kpiTrend.map((item: { statDate: string }) => item.statDate)
+  },
+  yAxis: [
+    { type: 'value', name: '订单数' },
+    { type: 'value', name: '收入(USD)', axisLabel: { formatter: '{value}' } }
+  ],
+  series: [
+    {
+      name: '订单数',
+      type: 'line',
+      data: store.kpiTrend.map((item: { totalTrips: number }) => item.totalTrips)
     },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      boundaryGap: false,
-      data: xAxisData
-    },
-    yAxis: {
-      type: 'value',
-      name: isTrips ? '订单量(单)' : '收入(元)'
-    },
-    series: [
-      {
-        name: isTrips ? '订单量' : '收入',
-        type: 'line',
-        smooth: true,
-        data: seriesData
-      }
-    ]
-  }
-})
-
-// 获取数据
-const fetchDashboardData = async () => {
-  if (!dateRange.value || dateRange.value.length !== 2) {
-    ElMessage.warning('请选择日期范围')
-    return
-  }
-
-  loading.value = true
-  error.value = false
-  
-  try {
-    // 并行请求 KPI 汇总和趋势图数据
-    const [kpiRes, trendRes] = await Promise.all([
-      dashboardApi.getKpiSummary({
-        startDate: dateRange.value[0],
-        endDate: dateRange.value[1]
-      }),
-      dashboardApi.getTrendData({
-        startDate: dateRange.value[0],
-        endDate: dateRange.value[1]
-      })
-    ])
-    
-    kpiData.value = kpiRes
-    trendData.value = trendRes || []
-    
-    if (!kpiRes) {
-      error.value = true
-      errorMessage.value = '暂无数据'
+    {
+      name: '收入',
+      type: 'bar',
+      yAxisIndex: 1,
+      data: store.kpiTrend.map((item: { totalRevenue: number }) => item.totalRevenue)
     }
-  } catch (err: any) {
-    error.value = true
-    errorMessage.value = err.message || '数据加载失败'
+  ]
+}))
+
+const paymentChartOption = computed(() => {
+  const data = store.paymentAnalysis.map((item: { paymentTypeName: string; percentage: number }) => ({
+    name: item.paymentTypeName,
+    value: item.percentage
+  }))
+  return {
+    tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c}% ({d}%)' },
+    legend: { orient: 'vertical', right: '5%', top: 'center' },
+    series: [{ type: 'pie', radius: ['40%', '70%'], center: ['40%', '50%'], data }]
+  }
+})
+
+const hourlyChartOption = computed(() => ({
+  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+  grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+  xAxis: {
+    type: 'category',
+    data: store.hourlyDistribution.map((item: { hour: number }) => `${item.hour}:00`)
+  },
+  yAxis: { type: 'value', name: '订单数' },
+  series: [{ type: 'bar', data: store.hourlyDistribution.map((item: { tripCount: number }) => item.tripCount) }]
+}))
+
+const formatNumber = (num: number | undefined) => {
+  if (!num) return '0'
+  if (num >= 10000) return (num / 10000).toFixed(1) + '万'
+  return num.toLocaleString()
+}
+
+const handleDateRangeChange = () => {
+  fetchData()
+}
+
+const refreshData = () => {
+  fetchData()
+}
+
+const fetchData = async () => {
+  loading.value = true
+  try {
+    await store.fetchKpiSummary(dateRange.value[0], dateRange.value[1])
+    await store.fetchKpiTrend(dateRange.value[0], dateRange.value[1])
+    await store.fetchPaymentAnalysis(dateRange.value[0], dateRange.value[1])
+    await store.fetchHourlyDistribution(dateRange.value[0], dateRange.value[1])
   } finally {
     loading.value = false
   }
 }
 
-// 数字格式化函数
-const formatNumber = (value: number | string, decimals: number = 2): string => {
-  if (value === null || value === undefined) return '0'
-  const num = typeof value === 'string' ? parseFloat(value) : value
-  if (isNaN(num)) return '0'
-  return num.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-}
-
 onMounted(() => {
-  fetchDashboardData()
+  fetchData()
+})
+
+watch(activePeriod, () => {
+  fetchData()
 })
 </script>
 
-<style scoped>
-.dashboard-page {
-  padding: 0;
+<style lang="scss" scoped>
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.dashboard-card {
-  margin-bottom: 20px;
-}
-
-.card-header {
+.dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 20px 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.card-header h2 {
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: #6b7280;
   margin: 0;
-  font-size: 18px;
-  font-weight: bold;
-  color: #333;
 }
 
-.header-controls {
+.header-right {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.date-picker {
-  width: 280px;
-}
-
-.data-status {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 16px 0;
-  padding: 12px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
-}
-
-.update-info {
-  font-size: 12px;
-  color: #909399;
-}
-
-.error-container {
-  text-align: center;
-  padding: 40px 0;
-}
-
-.error-alert {
-  max-width: 400px;
-  margin: 0 auto 20px;
-}
-
-.retry-button {
-  margin-top: 16px;
-}
-
-.empty-container {
-  padding: 60px 0;
-}
-
-.kpi-section {
-  margin: 20px 0;
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
 }
 
 .kpi-card {
-  height: 120px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.kpi-indicator {
+  width: 8px;
+  height: 48px;
+  border-radius: 4px;
 }
 
 .kpi-content {
-  text-align: center;
+  flex: 1;
 }
 
-.kpi-title {
+.kpi-label {
   font-size: 14px;
-  color: #606266;
-  margin-bottom: 8px;
+  color: #6b7280;
+  margin: 0 0 4px 0;
 }
 
 .kpi-value {
-  font-size: 20px;
-  font-weight: bold;
-  color: #303133;
+  font-size: 28px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
 }
 
-.charts-section {
-  margin: 20px 0;
+.kpi-unit {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.kpi-trend {
+  font-size: 14px;
+  font-weight: 500;
+
+  &.positive {
+    color: #67c23a;
+  }
+
+  &.negative {
+    color: #f56c6c;
+  }
+}
+
+.chart-section {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
 }
 
 .chart-card {
-  margin-top: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
 }
 
 .chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f3f4f6;
 }
 
-.chart-content {
-  padding: 20px 0;
+.chart-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.chart-body {
+  padding: 20px;
+  height: 320px;
 }
 </style>

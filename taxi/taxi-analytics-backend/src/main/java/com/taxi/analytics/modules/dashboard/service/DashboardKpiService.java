@@ -1,6 +1,7 @@
 package com.taxi.analytics.modules.dashboard.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.taxi.analytics.modules.dashboard.dto.*;
 import com.taxi.analytics.modules.dashboard.entity.DashboardKpi;
 
 import java.time.LocalDate;
@@ -12,17 +13,17 @@ public interface DashboardKpiService extends IService<DashboardKpi> {
     /**
      * 获取KPI汇总数据
      */
-    Map<String, Object> getKpiSummary(LocalDate startDate, LocalDate endDate);
+    KpiSummaryDTO getKpiSummary(LocalDate startDate, LocalDate endDate);
     
     /**
      * 获取KPI趋势数据
      */
-    List<Map<String, Object>> getKpiTrend(LocalDate startDate, LocalDate endDate);
+    List<TrendDataDTO> getKpiTrend(LocalDate startDate, LocalDate endDate);
     
     /**
      * 获取小时分布数据
      */
-    List<Map<String, Object>> getHourlyDistribution(LocalDate startDate, LocalDate endDate);
+    List<HourlyDistributionDTO> getHourlyDistribution(LocalDate startDate, LocalDate endDate);
     
     /**
      * 获取星期分析数据
@@ -32,7 +33,7 @@ public interface DashboardKpiService extends IService<DashboardKpi> {
     /**
      * 获取支付方式分析
      */
-    List<Map<String, Object>> getPaymentAnalysis(LocalDate startDate, LocalDate endDate);
+    List<PaymentDistributionDTO> getPaymentAnalysis(LocalDate startDate, LocalDate endDate);
     
     /**
      * 获取费用构成

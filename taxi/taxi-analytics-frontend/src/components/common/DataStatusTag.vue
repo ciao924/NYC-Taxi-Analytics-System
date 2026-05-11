@@ -1,13 +1,12 @@
 <template>
   <el-tag :type="statusType" size="small" effect="plain">
-    <el-icon><component :is="iconMap[status]" /></el-icon>
+    <span>{{ iconText }}</span>
     <span>{{ statusText }}</span>
   </el-tag>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Warning, Check, Loading } from '@element-plus/icons-vue'
 
 export type DataStatus = 'normal' | 'updating' | 'delay' | 'unknown'
 
@@ -25,12 +24,14 @@ const statusType = computed(() => {
   }
 })
 
-const iconMap = {
-  normal: Check,
-  updating: Loading,
-  delay: Warning,
-  unknown: Warning
-}
+const iconText = computed(() => {
+  switch (props.status) {
+    case 'normal': return '✓'
+    case 'updating': return '○'
+    case 'delay': return '⚠'
+    default: return '?'
+  }
+})
 
 const statusText = computed(() => {
   switch (props.status) {

@@ -5,7 +5,7 @@
       <aside class="ai-sidebar">
         <div class="sidebar-header">
           <h3 class="sidebar-title">会话管理</h3>
-          <button class="btn-primary small" @click="createNewSession">+ 新建会话</button>
+          <el-button size="small" type="primary" @click="createNewSession">+ 新建会话</el-button>
         </div>
 
         <!-- 会话列表 -->
@@ -21,15 +21,15 @@
               <span class="session-name">{{ session.sessionName }}</span>
             </div>
             <div class="session-actions">
-              <button class="action-btn" @click.stop="showRenameDialog(session)" title="重命名">编辑</button>
-              <button class="action-btn" @click.stop="deleteSession(session.sessionId)" title="删除">删除</button>
+              <el-button size="mini" @click.stop="showRenameDialog(session)" title="重命名">编辑</el-button>
+              <el-button size="mini" type="danger" @click.stop="deleteSession(session.sessionId)" title="删除">删除</el-button>
             </div>
           </div>
           <div v-if="sessions.length === 0" class="empty-state">
             <p>暂无会话记录</p>
-            <button class="btn-secondary small" @click="createNewSession">
+            <el-button size="small" type="primary" @click="createNewSession">
               新建第一个会话
-            </button>
+            </el-button>
           </div>
         </div>
 
@@ -46,7 +46,7 @@
               @click="applyFavorite(fav.queryText)"
             >
               <span class="favorite-text">{{ fav.queryText }}</span>
-              <button class="action-btn" @click.stop="removeFavorite(fav.id)" title="取消收藏">×</button>
+              <el-button size="mini" type="text" @click.stop="removeFavorite(fav.id)" title="取消收藏">×</el-button>
             </div>
             <div v-if="favorites.length === 0" class="empty-state small">
               <p>暂无收藏</p>
@@ -58,7 +58,7 @@
         <div class="sidebar-section">
           <div class="section-header">
             <h4 class="section-title">定时任务</h4>
-            <button class="action-btn" @click="showScheduleDialog = true" title="创建任务">+</button>
+            <el-button size="mini" type="primary" @click="showScheduleDialog = true" title="创建任务">+</el-button>
           </div>
           <div class="schedule-list">
             <div
@@ -70,7 +70,7 @@
                 <span class="schedule-query">{{ task.queryText }}</span>
                 <span class="schedule-time">{{ task.scheduleTime }}</span>
               </div>
-              <button class="action-btn" @click="deleteScheduledTask(task.taskId)" title="删除任务">×</button>
+              <el-button size="mini" type="danger" @click="deleteScheduledTask(task.taskId)" title="删除任务">×</el-button>
             </div>
             <div v-if="scheduledTasks.length === 0" class="empty-state small">
               <p>暂无定时任务</p>
@@ -87,8 +87,8 @@
             <h3>{{ currentSessionName || '智能数据查询助手' }}</h3>
           </div>
           <div class="chat-actions">
-            <button class="btn-secondary small" @click="toggleSuggestions">查询建议</button>
-            <button class="btn-secondary small" @click="toggleHistory">查询历史</button>
+            <el-button size="small" @click="toggleSuggestions">查询建议</el-button>
+            <el-button size="small" @click="toggleHistory">查询历史</el-button>
           </div>
         </header>
 
@@ -96,7 +96,7 @@
         <div class="suggestions-panel" v-if="showSuggestions">
           <div class="panel-header">
             <h4>查询建议</h4>
-            <button class="action-btn" @click="showSuggestions = false">×</button>
+            <el-button size="mini" type="text" @click="showSuggestions = false">×</el-button>
           </div>
           <div class="suggestions-list">
             <div
@@ -117,7 +117,7 @@
         <div class="history-panel" v-if="showHistory">
           <div class="panel-header">
             <h4>查询历史</h4>
-            <button class="action-btn" @click="showHistory = false">×</button>
+            <el-button size="mini" type="text" @click="showHistory = false">×</el-button>
           </div>
           <div class="history-list">
             <div
@@ -139,21 +139,19 @@
         <div class="chat-messages" ref="messagesContainer">
           <!-- 欢迎消息 -->
           <div v-if="messages.length === 0" class="welcome-message">
-            <div class="welcome-icon">
-              <span class="icon">💬</span>
-            </div>
+            <div class="welcome-icon">AI</div>
             <h2>欢迎使用智能数据查询助手</h2>
             <p>您可以通过自然语言查询出租车数据，例如：</p>
             <div class="welcome-examples">
-              <button class="example-btn" @click="applyExample('查询2025年1月的订单总量')">
+              <el-button size="small" @click="applyExample('查询2025年1月的订单总量')">
                 查询2025年1月的订单总量
-              </button>
-              <button class="example-btn" @click="applyExample('统计总收入最高的10个区域')">
+              </el-button>
+              <el-button size="small" @click="applyExample('统计总收入最高的10个区域')">
                 统计总收入最高的10个区域
-              </button>
-              <button class="example-btn" @click="applyExample('分析周末与工作日的出行差异')">
+              </el-button>
+              <el-button size="small" @click="applyExample('分析周末与工作日的出行差异')">
                 分析周末与工作日的出行差异
-              </button>
+              </el-button>
             </div>
           </div>
 
@@ -165,45 +163,28 @@
             :class="msg.role"
           >
             <div class="message-avatar">
-              <span v-if="msg.role === 'user'" class="avatar-text">你</span>
-              <span v-else class="avatar-text">AI</span>
+              {{ msg.role === 'user' ? 'U' : 'AI' }}
             </div>
             <div class="message-content">
               <div class="message-bubble">
                 <div v-if="msg.role === 'user'" class="message-text">{{ msg.content }}</div>
                 <div v-else class="message-text">
-                  <div v-if="msg.chartType" class="chart-container">
-                    <LineChart v-if="msg.chartType === 'line'" :option="{
-                      xAxis: {
-                        type: 'category',
-                        data: msg.chartData.map((item: any) => item.name)
-                      },
-                      yAxis: {
-                        type: 'value'
-                      },
-                      series: [{
-                        data: msg.chartData.map((item: any) => item.value),
-                        type: 'line'
-                      }]
-                    }" height="300px" />
-                    <BarChart v-else-if="msg.chartType === 'bar'" :data="msg.chartData" height="300px" />
-                    <PieChart v-else-if="msg.chartType === 'pie'" :data="msg.chartData" height="300px" />
+                  <div v-if="msg.chartType && msg.chartData" class="chart-container">
+                    <v-chart :option="getChartOption(msg)" autoresize />
                   </div>
                   <div v-else>{{ msg.content }}</div>
                 </div>
               </div>
               <div class="message-actions" v-if="msg.role === 'assistant'">
-                <button class="action-btn" @click="copyMessage(msg.content)" title="复制">复制</button>
-                <button class="action-btn" @click="addToFavorites(msg.content)" title="收藏">收藏</button>
+                <el-button size="mini" @click="copyMessage(msg.content)" title="复制">复制</el-button>
+                <el-button size="mini" @click="addToFavorites(msg.content)" title="收藏">收藏</el-button>
               </div>
             </div>
           </div>
 
           <!-- 加载状态 -->
           <div v-if="loading" class="message-item assistant">
-            <div class="message-avatar">
-              <span class="avatar-text">AI</span>
-            </div>
+            <div class="message-avatar">AI</div>
             <div class="message-content">
               <div class="message-bubble loading">
                 <div class="loading-spinner"></div>
@@ -225,83 +206,64 @@
             ></textarea>
           </div>
           <div class="input-actions">
-            <button 
-              class="btn-primary" 
-              :class="{ loading: loading }"
+            <el-button
+              type="primary"
+              :loading="loading"
               :disabled="!queryText.trim()"
               @click="sendQuery"
             >
               发送
-            </button>
+            </el-button>
           </div>
         </div>
       </main>
     </div>
 
     <!-- 重命名会话对话框 -->
-    <div v-if="renameDialog.visible" class="dialog-overlay">
-      <div class="dialog-content">
-        <div class="dialog-header">
-          <h3>重命名会话</h3>
-          <button class="action-btn" @click="renameDialog.visible = false">×</button>
-        </div>
-        <div class="dialog-body">
-          <input
-            v-model="renameDialog.newName"
-            type="text"
-            placeholder="请输入新名称"
-            class="dialog-input"
-            @keyup.enter="confirmRename"
-          />
-        </div>
-        <div class="dialog-footer">
-          <button class="btn-secondary" @click="renameDialog.visible = false">取消</button>
-          <button class="btn-primary" @click="confirmRename">确定</button>
-        </div>
-      </div>
-    </div>
+    <el-dialog title="重命名会话" v-model="renameDialog.visible" width="400px">
+      <el-input
+        v-model="renameDialog.newName"
+        placeholder="请输入新名称"
+        @keyup.enter="confirmRename"
+      />
+      <template #footer>
+        <el-button @click="renameDialog.visible = false">取消</el-button>
+        <el-button type="primary" @click="confirmRename">确定</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 创建定时任务对话框 -->
-    <div v-if="showScheduleDialog" class="dialog-overlay">
-      <div class="dialog-content">
-        <div class="dialog-header">
-          <h3>创建定时任务</h3>
-          <button class="action-btn" @click="showScheduleDialog = false">×</button>
-        </div>
-        <div class="dialog-body">
-          <div class="form-group">
-            <label>查询内容</label>
-            <textarea
-              v-model="scheduleForm.queryText"
-              placeholder="请输入查询内容"
-              rows="3"
-              class="dialog-textarea"
-            ></textarea>
-          </div>
-          <div class="form-group">
-            <label>执行时间</label>
-            <input
-              v-model="scheduleForm.scheduleTime"
-              type="datetime-local"
-              class="dialog-input"
-            />
-          </div>
-        </div>
-        <div class="dialog-footer">
-          <button class="btn-secondary" @click="showScheduleDialog = false">取消</button>
-          <button class="btn-primary" @click="confirmSchedule">确定</button>
-        </div>
-      </div>
-    </div>
+    <el-dialog title="创建定时任务" v-model="showScheduleDialog" width="400px">
+      <el-form :model="scheduleForm" label-width="80px">
+        <el-form-item label="查询内容">
+          <el-textarea
+            v-model="scheduleForm.queryText"
+            placeholder="请输入查询内容"
+            :rows="3"
+          />
+        </el-form-item>
+        <el-form-item label="执行时间">
+          <el-input v-model="scheduleForm.scheduleTime" type="datetime-local" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showScheduleDialog = false">取消</el-button>
+        <el-button type="primary" @click="confirmSchedule">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import LineChart from '@/components/charts/LineChart.vue'
-import BarChart from '@/components/charts/BarChart.vue'
-import PieChart from '@/components/charts/PieChart.vue'
+import VChart from 'vue-echarts'
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { LineChart, BarChart, PieChart } from 'echarts/charts'
+import { TitleComponent, TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
+
+use([CanvasRenderer, LineChart, BarChart, PieChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
 // 状态定义
 const queryText = ref('')
@@ -357,9 +319,39 @@ const mockScheduledTasks = [
   { taskId: '1', queryText: '每日订单统计', scheduleTime: '2025-04-01 08:00:00' }
 ]
 
+// 图表配置
+const getChartOption = (msg: any) => {
+  const chartType = msg.chartType || 'line'
+  const chartData = msg.chartData || []
+  
+  if (chartType === 'pie') {
+    return {
+      tooltip: { trigger: 'item' },
+      series: [{ type: 'pie', data: chartData.map((item: any) => ({ name: item.name, value: item.value })) }]
+    }
+  }
+  
+  if (chartType === 'bar') {
+    return {
+      tooltip: { trigger: 'axis' },
+      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      xAxis: { type: 'category', data: chartData.map((item: any) => item.name) },
+      yAxis: { type: 'value' },
+      series: [{ type: 'bar', data: chartData.map((item: any) => item.value) }]
+    }
+  }
+  
+  return {
+    tooltip: { trigger: 'axis' },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'category', data: chartData.map((item: any) => item.name) },
+    yAxis: { type: 'value' },
+    series: [{ type: 'line', smooth: true, data: chartData.map((item: any) => item.value) }]
+  }
+}
+
 // 方法
 const loadSessions = async () => {
-  // 模拟API调用
   setTimeout(() => {
     sessions.value = mockSessions
     if (sessions.value.length > 0) {
@@ -369,28 +361,24 @@ const loadSessions = async () => {
 }
 
 const loadSuggestions = async () => {
-  // 模拟API调用
   setTimeout(() => {
     suggestions.value = mockSuggestions
   }, 300)
 }
 
 const loadHistory = async () => {
-  // 模拟API调用
   setTimeout(() => {
     history.value = mockHistory
   }, 300)
 }
 
 const loadFavorites = async () => {
-  // 模拟API调用
   setTimeout(() => {
     favorites.value = mockFavorites
   }, 300)
 }
 
 const loadScheduledTasks = async () => {
-  // 模拟API调用
   setTimeout(() => {
     scheduledTasks.value = mockScheduledTasks
   }, 300)
@@ -416,7 +404,6 @@ const selectSession = async (sessionId: string) => {
   if (session) {
     currentSessionName.value = session.sessionName
   }
-  // 清空消息
   messages.value = []
 }
 
@@ -637,7 +624,7 @@ onMounted(async () => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .ai-page {
   min-height: 100vh;
   background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
@@ -922,11 +909,8 @@ onMounted(async () => {
   justify-content: center;
   margin: 0 auto 24px;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.welcome-icon .icon {
-  font-size: 40px;
   color: white;
+  font-size: 40px;
 }
 
 .welcome-message h2 {
@@ -949,25 +933,6 @@ onMounted(async () => {
   margin: 0 auto;
 }
 
-.example-btn {
-  padding: 12px 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: white;
-  color: #4b5563;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: left;
-}
-
-.example-btn:hover {
-  background: #f3f4f6;
-  border-color: #d1d5db;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
 .message-item {
   display: flex;
   gap: 16px;
@@ -976,14 +941,8 @@ onMounted(async () => {
 }
 
 @keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .message-item.user {
@@ -1001,15 +960,11 @@ onMounted(async () => {
   justify-content: center;
   flex-shrink: 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 18px;
 }
 
 .message-item.assistant .message-avatar {
   background: linear-gradient(135deg, #10b981, #34d399);
-}
-
-.avatar-text {
-  font-size: 14px;
-  font-weight: 600;
 }
 
 .message-content {
@@ -1076,6 +1031,7 @@ onMounted(async () => {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  height: 300px;
 }
 
 .chat-input {
@@ -1109,174 +1065,6 @@ onMounted(async () => {
 .input-actions {
   display: flex;
   justify-content: flex-end;
-}
-
-/* 对话框 */
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.dialog-content {
-  background: white;
-  border-radius: 16px;
-  width: 400px;
-  max-width: 90%;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.dialog-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.dialog-header h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-}
-
-.dialog-body {
-  padding: 24px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: #4b5563;
-  margin-bottom: 8px;
-}
-
-.dialog-input,
-.dialog-textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: all 0.2s ease;
-}
-
-.dialog-input:focus,
-.dialog-textarea:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.dialog-textarea {
-  resize: vertical;
-  min-height: 80px;
-}
-
-.dialog-footer {
-  padding: 20px 24px;
-  border-top: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-/* 按钮样式 */
-.btn-primary,
-.btn-secondary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.btn-primary.loading {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: #f3f4f6;
-  color: #4b5563;
-  border: 1px solid #e5e7eb;
-}
-
-.btn-secondary:hover {
-  background: #e5e7eb;
-  transform: translateY(-1px);
-}
-
-.btn-primary.small,
-.btn-secondary.small {
-  padding: 6px 12px;
-  font-size: 12px;
-}
-
-.action-btn {
-  padding: 6px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.action-btn:hover {
-  background: #f3f4f6;
 }
 
 /* 空状态 */
@@ -1356,12 +1144,6 @@ onMounted(async () => {
   .chat-actions {
     flex-direction: column;
     gap: 6px;
-  }
-  
-  .btn-primary,
-  .btn-secondary {
-    padding: 8px 12px;
-    font-size: 12px;
   }
 }
 </style>
