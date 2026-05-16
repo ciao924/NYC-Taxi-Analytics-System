@@ -653,11 +653,6 @@ SQL 安全检查（防注入 + 只读校验）
 
 ---
 
-## 📄 许可证
-
-本项目基于 [MIT License](LICENSE) 开源。
-
----
 
 **项目地址**：[https://github.com/ciao924/NYC-Taxi-Analytics-System](https://github.com/ciao924/NYC-Taxi-Analytics-System)
 
