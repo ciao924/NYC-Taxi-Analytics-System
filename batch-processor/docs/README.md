@@ -1,10 +1,10 @@
-# Batch Processor Module
+# 离线批处理模块
 
-离线批处理模块 - 基于 Apache Spark 的离线数据处理引擎。
+基于 Apache Spark 的离线数据处理引擎。
 
 ## 📌 模块定位
 
-本模块是数据处理 Pipeline 的**离线处理层**，负责处理历史数据，构建数仓分层结构（ODS → DWD → DWS）。
+本模块是数据处理 Pipeline 的**离线处理层**，负责处理历史数据，构建数仓分层结构（ODS → DWD → DWS → ADS）。
 
 ## ✨ 核心功能
 
@@ -48,72 +48,53 @@ batch-processor/
 │   │   ├── fee/              # 费用分析
 │   │   └── traffic/          # 流量分析
 │   ├── common/               # 公共组件
-│   ├── models/               # 数据模型
+│   │   ├── SparkSessionFactory.scala
+│   │   ├── ConfigManager.scala
+│   │   └── QualityManager.scala
 │   ├── quality/              # 质量检测
-│   ├── exception/            # 异常处理
+│   │   ├── QualityReporter.scala
+│   │   └── QualityScoreCalculator.scala
 │   └── utils/                # 工具类
 ├── src/main/resources/       # 配置文件
 │   ├── application.conf
 │   ├── application-dev.conf
 │   ├── application-prod.conf
 │   └── hive-site.xml
-├── pom.xml                   # Maven 配置
-└── README.md                 # 本说明文档
+├── docs/                     # 模块文档
+└── pom.xml                   # Maven 配置
 ```
 
-## 🚀 快速开始
+## 🚀 运行方式
 
-### 1. 编译打包
+### 编译打包
 
 ```bash
 cd batch-processor
 mvn clean package -DskipTests
 ```
 
-### 2. 运行作业
+### 提交作业
 
 ```bash
-# 运行 ODS 加载作业
-spark-submit --class com.taxi.etl.ods.GreenOdsLoader \
-  target/taxi-analytics-assembly.jar
-
-# 运行 DWD 构建作业
-spark-submit --class com.taxi.etl.dwd.DwdLayerBuilder \
-  target/taxi-analytics-assembly.jar
-
-# 运行 ADS 构建作业
-spark-submit --class com.taxi.etl.ads.AdsLayerBuilder \
-  target/taxi-analytics-assembly.jar
+# 全量执行
+spark-submit \
+  --class com.taxi.etl.xxx \
+  --master yarn \
+  --deploy-mode cluster \
+  target/spark-test-1.0-SNAPSHOT.jar
 ```
 
-## 📊 数仓分层结构
+## 📊 数仓分层
 
-```
-ODS (原始数据层)
-    │
-    ▼
-DWD (明细数据层)
-    │
-    ▼
-DWS (汇总数据层)
-    │
-    ▼
-ADS (应用数据层) → MySQL → BI Dashboard
-```
-
-## 📋 数仓层级说明
-
-| 层级 | 说明 | 存储格式 |
+| 层级 | 说明 | 存储位置 |
 |------|------|----------|
-| **ODS** | 原始数据层，直接从数据源加载 | Hive ORC |
-| **DWD** | 明细数据层，清洗后的业务明细 | Iceberg |
-| **DWS** | 汇总数据层，按维度聚合 | Iceberg |
-| **ADS** | 应用数据层，最终报表指标 | MySQL |
+| **ODS** | 原始数据层 | Hive ODS 库 |
+| **DWD** | 明细数据层 | Hive DWD 库 |
+| **DWS** | 汇总数据层 | Hive DWS 库 |
+| **ADS** | 应用数据层 | MySQL |
 
-## 📝 版本历史
+## 📝 文档链接
 
-| 版本 | 日期 | 更新内容 |
-|------|------|----------|
-| v1.0 | 2025-04-01 | 初始版本 |
-| v1.1 | 2025-04-15 | 添加 DWD/DWS 层构建 |
-| v1.2 | 2025-04-30 | 支持 Iceberg 数据湖 |
+- [模块分析报告](离线批处理模块-模块分析报告.md)
+- [修复日志索引](离线批处理模块-变更日志索引.md)
+- [离线数仓规范](离线批处理模块-离线数仓规范与边界手册.md)

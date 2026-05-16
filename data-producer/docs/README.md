@@ -1,6 +1,6 @@
-# Data Producer Module
+# 数据生产模块
 
-数据生产模块 - 将纽约市出租车数据集写入 Kafka，模拟实时数据流。
+将纽约市出租车数据集写入 Kafka，模拟实时数据流。
 
 ## 📌 模块定位
 
@@ -45,87 +45,52 @@ data-producer/
 │   └── test_batch_send.py           # 批量发送测试
 ├── .env.example             # 环境变量示例文件
 ├── requirements.txt         # Python 依赖清单
-└── README.md                # 本说明文档
+└── docs/                    # 模块文档
 ```
 
-## 🚀 快速开始
+## 🚀 运行方式
 
-### 1. 安装依赖
+### 安装依赖
 
 ```bash
+cd data-producer
 pip install -r requirements.txt
 ```
 
-### 2. 配置环境变量
+### 配置环境变量
 
 ```bash
 cp .env.example .env
+# 编辑 .env 文件，配置 Kafka 连接信息
 ```
 
-编辑 `.env` 文件：
-
-```env
-# Kafka 配置
-KAFKA_BOOTSTRAP_SERVERS=hadoop102:9092,hadoop103:9092,hadoop104:9092
-KAFKA_TOPIC_GREEN=taxi_trip_green
-KAFKA_TOPIC_YELLOW=taxi_trip_yellow
-
-# 数据文件路径
-GREEN_TRIPDATA_PATH=data/green_tripdata_2025-04.parquet
-YELLOW_TRIPDATA_PATH=data/yellow_tripdata_2025-04.parquet
-```
-
-### 3. 启动生产者
+### 启动生产者
 
 ```bash
-# 启动绿色出租车数据生产者（默认）
+# 启动主生产者
 python scripts/kafka_producer.py
 
-# 启动黄色出租车数据生产者
-python scripts/kafka_producer.py --taxi-type yellow
+# 指定发送速率（每秒发送消息数）
+python scripts/kafka_producer.py --rate 100
 
-# 指定发送速率（50条/秒）
-python scripts/kafka_producer.py --rate 50
+# 从断点继续
+python scripts/kafka_producer.py --resume
 ```
 
-## 📋 命令行参数
+### 测试命令
 
-| 参数 | 类型 | 描述 | 默认值 |
-|------|------|------|--------|
-| `--taxi-type` | str | 出租车类型：`green` 或 `yellow` | `green` |
-| `--file-path` | str | Parquet 数据文件路径 | 根据 taxi-type 自动选择 |
-| `--topic` | str | Kafka 主题名称 | 根据 taxi-type 自动选择 |
-| `--rate` | int | 发送速率（条/秒） | `10` |
-| `--start-offset` | int | 数据文件起始位置 | `0` |
+```bash
+# 测试 Kafka 连接
+python scripts/test_kafka_connection.py
 
-## 🔄 断点续传机制
+# 发送单条测试消息
+python scripts/test_single_message.py
 
-- **断点文件位置**：`checkpoint/{topic}_checkpoint.json`
-- **保存内容**：`{"offset": 1000, "timestamp": 1712000000}`
-- **触发时机**：每发送 100 条记录自动保存
+# 测试批量发送
+python scripts/test_batch_send.py
+```
 
-## 📊 日志管理
+## 📝 文档链接
 
-- **日志存储**：`logs/kafka_producer.log`
-- **日志级别**：INFO
-- **输出目标**：控制台 + 文件
-
-## ✅ 数据校验规则
-
-| 校验项 | 描述 |
-|--------|------|
-| `VendorID` | 不能为空 |
-| `pickup_datetime` | 不能为空 |
-| `dropoff_datetime` | 不能为空 |
-| `passenger_count` | 不能为空 |
-| `trip_distance` | 不能为空 |
-| `PULocationID` | 不能为空 |
-| `DOLocationID` | 不能为空 |
-
-## 📝 版本历史
-
-| 版本 | 日期 | 更新内容 |
-|------|------|----------|
-| v1.0 | 2025-04-01 | 初始版本 |
-| v1.1 | 2025-04-15 | 添加黄色出租车支持 |
-| v1.2 | 2025-04-30 | 优化速率控制和断点续传 |
+- [模块分析报告](数据生产模块-模块分析报告.md)
+- [修复日志索引](数据生产模块-变更日志索引.md)

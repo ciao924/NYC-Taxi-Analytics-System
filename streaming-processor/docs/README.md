@@ -1,6 +1,6 @@
-# Streaming Processor Module
+# 实时流处理模块
 
-实时流处理模块 - 基于 Apache Flink 的实时数据处理引擎。
+基于 Apache Flink 的实时数据处理引擎。
 
 ## 📌 模块定位
 
@@ -48,58 +48,77 @@ streaming-processor/
 │   ├── application-metrics.properties
 │   └── flink-conf.yaml
 ├── scripts/                  # 脚本文件
-│   ├── deploy.bat
-│   ├── stop.bat
-│   └── savepoint.sh
-├── pom.xml                   # Maven 配置
-└── README.md                 # 本说明文档
+│   ├── deploy.sh
+│   ├── restart.sh
+│   ├── stop.sh
+│   └── status.sh
+├── docs/                     # 模块文档
+└── pom.xml                   # Maven 配置
 ```
 
-## 🚀 快速开始
+## 🚀 运行方式
 
-### 1. 编译打包
+### 编译打包
 
 ```bash
 cd streaming-processor
 mvn clean package -DskipTests
 ```
 
-### 2. 启动作业
+### 启动 ODS 作业
 
 ```bash
-# 启动 ODS 作业（实时写入明细数据）
-flink run -c com.taxi.realtime.RealtimeOdsJob \
-  target/flink-realtime-consumer-1.0-SNAPSHOT.jar \
-  --config application-ods.properties
+# 本地运行
+flink run \
+  -c com.taxi.realtime.RealtimeOdsJob \
+  target/flink-realtime-1.0-SNAPSHOT.jar
 
-# 启动指标作业（实时计算指标）
-flink run -c com.taxi.realtime.RealtimeMetricsJob \
-  target/flink-realtime-consumer-1.0-SNAPSHOT.jar \
+# 集群运行
+flink run \
+  -m yarn-cluster \
+  -c com.taxi.realtime.RealtimeOdsJob \
+  target/flink-realtime-1.0-SNAPSHOT.jar \
+  --config application-ods.properties
+```
+
+### 启动指标作业
+
+```bash
+flink run \
+  -c com.taxi.realtime.RealtimeMetricsJob \
+  target/flink-realtime-1.0-SNAPSHOT.jar \
   --config application-metrics.properties
 ```
 
-## 📊 数据处理流程
+### 脚本操作
 
+```bash
+# 部署
+bash scripts/deploy.sh
+
+# 重启
+bash scripts/restart.sh
+
+# 停止
+bash scripts/stop.sh
+
+# 查看状态
+bash scripts/status.sh
 ```
-Kafka Source → JSON 解析 → 数据清洗 → 质量检测 → 多 Sink 输出
-                                    │
-                                    ▼
-                              死信队列
-```
 
-## 📋 数据质量规则
+## 📊 输出指标
 
-| 规则 | 字段 | 校验条件 |
-|------|------|----------|
-| 非空校验 | `VendorID` | 不为 null |
-| 时间校验 | `dropoff_datetime` | 大于 `pickup_datetime` |
-| 范围校验 | `trip_distance` | (0, 120] |
-| 范围校验 | `passenger_count` | [1, 6] |
+| 指标类型 | 说明 |
+|----------|------|
+| **实时订单量** | 每分钟订单数统计 |
+| **热点区域** | 实时上车/下车热点 Top10 |
+| **费用分析** | 实时费用分布统计 |
+| **支付方式** | 支付方式实时分布 |
+| **质量指标** | 数据质量实时监控 |
 
-## 📝 版本历史
+## 📝 文档链接
 
-| 版本 | 日期 | 更新内容 |
-|------|------|----------|
-| v1.0 | 2025-04-01 | 初始版本 |
-| v1.1 | 2025-04-15 | 添加实时指标计算作业 |
-| v1.2 | 2025-04-30 | 优化数据质量检测和告警机制 |
+- [模块分析报告](实时流处理模块-模块分析报告.md)
+- [修复日志索引](实时流处理模块-变更日志索引.md)
+- [实时数仓方案](实时流处理模块-实时数仓方案：双Job架构设计.md)
+- [质量检测文档](实时流处理模块-实时数据质量检测：纽约出租车数据.md)
