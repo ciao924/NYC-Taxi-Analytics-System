@@ -47,6 +47,7 @@ object DwdLayerBuilder {
       logger.info("=" * 80)
 
       // ==================== 阶段1: 读取 ODS 数据并合并 ====================
+      // 分区字段使用 int 类型
       val yellowDf = spark.table("nyc_taxi_ods.taxi_trip_yellow_ods")
         .filter(col("year") === targetYear)
         .filter(col("month").isin(targetMonths: _*))

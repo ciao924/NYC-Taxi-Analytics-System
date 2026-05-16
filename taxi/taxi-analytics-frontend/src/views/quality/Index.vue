@@ -1,9 +1,12 @@
 <template>
   <div class="quality-container">
-    <div class="page-header">
-      <h2 class="page-title">数据质量检测</h2>
-      <div class="header-controls">
-        <el-select v-model="selectedDate" size="small">
+    <div class="dashboard-header">
+      <div class="header-left">
+        <h2 class="page-title">数据质量检测</h2>
+        <p class="page-subtitle">监控和分析数据质量指标</p>
+      </div>
+      <div class="header-right">
+        <el-select v-model="selectedDate" size="small" style="width: 120px">
           <el-option label="今日" value="today" />
           <el-option label="本周" value="week" />
           <el-option label="本月" value="month" />
@@ -14,86 +17,93 @@
       </div>
     </div>
 
-    <!-- 概览卡片 -->
-    <div class="overview-grid">
-      <div class="overview-card">
-        <div class="overview-header">
-          <span class="overview-title">数据完整性</span>
-          <span class="status-icon" :class="completenessStatus">{{ getStatusIcon(completenessStatus) }}</span>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-indicator" :class="completenessStatus"></div>
+        <div class="kpi-content">
+          <p class="kpi-label">数据完整性</p>
+          <p class="kpi-value">{{ dataQuality.completeness }}%</p>
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: dataQuality.completeness + '%' }" :class="completenessStatus"></div>
+          </div>
         </div>
-        <div class="overview-value">{{ dataQuality.completeness }}%</div>
-        <div class="progress-bar">
-          <div class="progress-fill" :style="{ width: dataQuality.completeness + '%' }" :class="completenessStatus"></div>
-        </div>
+        <div class="status-icon" :class="completenessStatus">{{ getStatusIcon(completenessStatus) }}</div>
       </div>
 
-      <div class="overview-card">
-        <div class="overview-header">
-          <span class="overview-title">数据准确性</span>
-          <span class="status-icon" :class="accuracyStatus">{{ getStatusIcon(accuracyStatus) }}</span>
+      <div class="kpi-card">
+        <div class="kpi-indicator" :class="accuracyStatus"></div>
+        <div class="kpi-content">
+          <p class="kpi-label">数据准确性</p>
+          <p class="kpi-value">{{ dataQuality.accuracy }}%</p>
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: dataQuality.accuracy + '%' }" :class="accuracyStatus"></div>
+          </div>
         </div>
-        <div class="overview-value">{{ dataQuality.accuracy }}%</div>
-        <div class="progress-bar">
-          <div class="progress-fill" :style="{ width: dataQuality.accuracy + '%' }" :class="accuracyStatus"></div>
-        </div>
+        <div class="status-icon" :class="accuracyStatus">{{ getStatusIcon(accuracyStatus) }}</div>
       </div>
 
-      <div class="overview-card">
-        <div class="overview-header">
-          <span class="overview-title">数据一致性</span>
-          <span class="status-icon" :class="consistencyStatus">{{ getStatusIcon(consistencyStatus) }}</span>
+      <div class="kpi-card">
+        <div class="kpi-indicator" :class="consistencyStatus"></div>
+        <div class="kpi-content">
+          <p class="kpi-label">数据一致性</p>
+          <p class="kpi-value">{{ dataQuality.consistency }}%</p>
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: dataQuality.consistency + '%' }" :class="consistencyStatus"></div>
+          </div>
         </div>
-        <div class="overview-value">{{ dataQuality.consistency }}%</div>
-        <div class="progress-bar">
-          <div class="progress-fill" :style="{ width: dataQuality.consistency + '%' }" :class="consistencyStatus"></div>
-        </div>
+        <div class="status-icon" :class="consistencyStatus">{{ getStatusIcon(consistencyStatus) }}</div>
       </div>
 
-      <div class="overview-card">
-        <div class="overview-header">
-          <span class="overview-title">检测异常数</span>
-          <span class="status-icon warning">⚠</span>
+      <div class="kpi-card">
+        <div class="kpi-indicator" style="background: #f56c6c"></div>
+        <div class="kpi-content">
+          <p class="kpi-label">检测异常数</p>
+          <p class="kpi-value error">{{ dataQuality.anomalyCount }}</p>
+          <p class="kpi-unit">共发现 {{ dataQuality.anomalyCount }} 个数据异常</p>
         </div>
-        <div class="overview-value error">{{ dataQuality.anomalyCount }}</div>
-        <div class="overview-desc">共发现 {{ dataQuality.anomalyCount }} 个数据异常</div>
+        <div class="status-icon warning">⚠</div>
       </div>
     </div>
 
-    <div class="chart-row">
-      <div class="chart-panel">
-        <div class="panel-header">
-          <h3>数据质量趋势</h3>
-          <span class="time-range">最近7天</span>
+    <div class="chart-section">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3 class="chart-title">数据质量趋势</h3>
+          <div class="chart-actions">
+            <span class="time-range">最近7天</span>
+          </div>
         </div>
-        <div class="chart-wrapper">
+        <div class="chart-body">
           <v-chart :option="qualityTrendOption" autoresize />
         </div>
       </div>
 
-      <div class="chart-panel">
-        <div class="panel-header">
-          <h3>异常类型分布</h3>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3 class="chart-title">异常类型分布</h3>
         </div>
-        <div class="chart-wrapper">
+        <div class="chart-body">
           <v-chart :option="anomalyTypeOption" autoresize />
         </div>
       </div>
     </div>
 
-    <div class="chart-row">
-      <div class="chart-panel full-width">
-        <div class="panel-header">
-          <h3>异常详情列表</h3>
-          <el-select v-model="filterType" size="small">
-            <el-option label="全部" value="all" />
-            <el-option label="缺失值" value="missing" />
-            <el-option label="异常值" value="anomaly" />
-            <el-option label="重复数据" value="duplicate" />
-            <el-option label="格式错误" value="format" />
-          </el-select>
+    <div class="chart-section">
+      <div class="chart-card full-width">
+        <div class="chart-header">
+          <h3 class="chart-title">异常详情列表</h3>
+          <div class="chart-actions">
+            <el-select v-model="filterType" size="small">
+              <el-option label="全部" value="all" />
+              <el-option label="缺失值" value="missing" />
+              <el-option label="异常值" value="anomaly" />
+              <el-option label="重复数据" value="duplicate" />
+              <el-option label="格式错误" value="format" />
+            </el-select>
+          </div>
         </div>
-        <div class="table-wrapper">
-          <el-table :data="filteredAnomalies" border>
+        <div class="chart-body">
+          <el-table :data="filteredAnomalies" border style="width: 100%">
             <el-table-column prop="id" label="ID" width="80" />
             <el-table-column prop="type" label="异常类型" width="120">
               <template #default="scope">
@@ -259,51 +269,90 @@ const refreshData = () => {
   gap: 24px;
 }
 
-.page-header {
+.dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  background: white;
   border-radius: 12px;
-  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.header-left {
+  flex: 1;
 }
 
 .page-title {
   font-size: 24px;
   font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: #6b7280;
   margin: 0;
 }
 
-.header-controls {
+.header-right {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.overview-grid {
+.kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 20px;
 }
 
-.overview-card {
+.kpi-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
   background: white;
   border-radius: 12px;
-  padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.overview-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+.kpi-indicator {
+  width: 8px;
+  height: 48px;
+  border-radius: 4px;
+
+  &.good { background: #67c23a; }
+  &.warning { background: #f59e0b; }
+  &.error { background: #f56c6c; }
 }
 
-.overview-title {
+.kpi-content {
+  flex: 1;
+}
+
+.kpi-label {
   font-size: 14px;
   color: #6b7280;
+  margin: 0 0 4px 0;
+}
+
+.kpi-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+
+  &.error {
+    color: #f56c6c;
+  }
+}
+
+.kpi-unit {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 0;
 }
 
 .status-icon {
@@ -313,22 +362,6 @@ const refreshData = () => {
   &.good { color: #67c23a; }
   &.warning { color: #f59e0b; }
   &.error { color: #f56c6c; }
-}
-
-.overview-value {
-  font-size: 32px;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 8px;
-
-  &.error {
-    color: #f56c6c;
-  }
-}
-
-.overview-desc {
-  font-size: 12px;
-  color: #6b7280;
 }
 
 .progress-bar {
@@ -348,36 +381,42 @@ const refreshData = () => {
   &.error { background: linear-gradient(90deg, #f56c6c, #f87171); }
 }
 
-.chart-row {
+.chart-section {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 20px;
 }
 
-.chart-panel {
+.chart-card {
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   overflow: hidden;
 }
 
-.chart-panel.full-width {
+.chart-card.full-width {
   grid-column: span 2;
 }
 
-.panel-header {
+.chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 20px 24px;
   border-bottom: 1px solid #f3f4f6;
 }
 
-.panel-header h3 {
-  font-size: 15px;
+.chart-title {
+  font-size: 16px;
   font-weight: 600;
   color: #1f2937;
   margin: 0;
+}
+
+.chart-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .time-range {
@@ -385,12 +424,8 @@ const refreshData = () => {
   color: #6b7280;
 }
 
-.chart-wrapper {
+.chart-body {
   padding: 20px;
-  height: 280px;
-}
-
-.table-wrapper {
-  padding: 20px;
+  height: 320px;
 }
 </style>

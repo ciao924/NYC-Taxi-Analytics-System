@@ -14,11 +14,11 @@ object PaymentAnalysisBuilder {
   private val UNIQUE_KEYS = AdsConstants.UniqueKeys.DATE_PAYMENT
 
   private val STANDARD_PAYMENTS = Seq(
-    ("Credit Card", true),
-    ("Cash", false),
-    ("Dispute", false),
-    ("No Charge", false),
-    ("Unknown", false)
+    ("信用卡", true),
+    ("现金", false),
+    ("争议", false),
+    ("免费", false),
+    ("未知", false)
   )
 
   def build(

@@ -4,7 +4,7 @@ import com.taxi.etl.common.{ConfigManager, MetricsCollector, SparkSessionFactory
 import com.taxi.etl.models.JobContext
 import com.taxi.etl.utils.{MonitorUtils, TaxiDataUtils}
 import org.apache.spark.sql.SaveMode
-import org.apache.spark.sql.functions.{col, month, year}
+import org.apache.spark.sql.functions.{col, lpad, month, year}
 import org.slf4j.LoggerFactory
 
 object GreenOdsLoader {
@@ -37,10 +37,10 @@ object GreenOdsLoader {
       val rawData = TaxiDataUtils.readGreenData(spark, DATA_PATH)
       logger.info(s"原始数据列数: ${rawData.columns.length}")
 
-      // 【优化点1】添加分区字段，去掉强制 repartition
+      // 【修复】分区字段保持 int 类型（与 Hive 表结构一致）
       val dataWithPartition = rawData
-        .withColumn("year", year(col("lpep_pickup_datetime")))
-        .withColumn("month", month(col("lpep_pickup_datetime")))
+        .withColumn("year", year(col("lpep_pickup_datetime")).cast("int"))
+        .withColumn("month", month(col("lpep_pickup_datetime")).cast("int"))
         .filter(col("year").isNotNull && col("month").isNotNull)
 
       // 【优化点2】分区完整性校验

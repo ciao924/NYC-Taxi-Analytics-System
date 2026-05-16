@@ -90,7 +90,7 @@ object FeeByTaxiTypeBuilder {
       val end = java.time.LocalDate.parse(endDate)
       (end.toEpochDay - start.toEpochDay + 1).toInt
     } catch {
-      case _: Exception => 1
+      case _: Exception => 90
     }
   }
 }

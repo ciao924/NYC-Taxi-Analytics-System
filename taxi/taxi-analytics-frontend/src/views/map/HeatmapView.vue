@@ -1,21 +1,27 @@
 <template>
   <div class="heatmap-page">
     <div class="heatmap-container">
-      <div class="date-selector">
-        <el-date-picker
-          v-model="selectedDate"
-          type="date"
-          placeholder="选择日期"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-          @change="onDateChange"
-          class="date-picker"
-        />
-        <el-radio-group v-model="hotspotType" @change="onTypeChange">
-          <el-radio value="pickup">上车热点</el-radio>
-          <el-radio value="dropoff">下车热点</el-radio>
-        </el-radio-group>
-        <el-button type="primary" @click="loadData" :loading="loading">查询</el-button>
+      <div class="dashboard-header">
+        <div class="header-left">
+          <h2 class="page-title">热力图分析</h2>
+          <p class="page-subtitle">分析出租车上下车热点区域分布</p>
+        </div>
+        <div class="header-right">
+          <el-date-picker
+            v-model="selectedDate"
+            type="date"
+            placeholder="选择日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+            @change="onDateChange"
+            class="date-picker"
+          />
+          <el-radio-group v-model="hotspotType" @change="onTypeChange">
+            <el-radio value="pickup">上车热点</el-radio>
+            <el-radio value="dropoff">下车热点</el-radio>
+          </el-radio-group>
+          <el-button type="primary" @click="loadData" :loading="loading">查询</el-button>
+        </div>
       </div>
       <div v-if="error" class="error-message">
         <el-alert
@@ -25,7 +31,9 @@
           :closable="false"
         />
       </div>
-      <div id="heatmap-map" class="map-container" v-loading="isMapLoading"></div>
+      <div class="chart-card">
+        <div id="heatmap-map" class="map-container" v-loading="isMapLoading"></div>
+      </div>
     </div>
   </div>
 </template>
@@ -214,17 +222,42 @@ onUnmounted(() => {
 }
 
 .heatmap-container {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.date-selector {
-  margin-bottom: 20px;
+.dashboard-header {
   display: flex;
-  gap: 20px;
+  justify-content: space-between;
   align-items: center;
+  padding: 20px 24px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.header-left {
+  flex: 1;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -236,12 +269,16 @@ onUnmounted(() => {
   margin-bottom: 16px;
 }
 
+.chart-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
 .map-container {
   height: 600px;
   width: 100%;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   background: #f9f9f9;
 }
 </style>

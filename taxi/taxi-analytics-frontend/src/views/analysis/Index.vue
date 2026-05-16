@@ -1,13 +1,12 @@
 <template>
   <div class="analysis-page">
-    <div class="page-header">
-      <div class="header-content">
-        <h1>深度分析中心</h1>
-        <p>基于多维度数据的智能分析与业务洞察</p>
+    <div class="dashboard-header">
+      <div class="header-left">
+        <h2 class="page-title">深度分析中心</h2>
+        <p class="page-subtitle">基于多维度数据的智能分析与业务洞察</p>
       </div>
-      <div class="header-controls">
+      <div class="header-right">
         <div class="date-range-wrapper">
-          <span class="label">时间范围</span>
           <el-date-picker
             v-model="dateRange"
             type="daterange"
@@ -23,12 +22,6 @@
           执行分析
         </el-button>
       </div>
-    </div>
-
-    <div class="data-status-bar" v-if="showStatusBar">
-      <span class="status-indicator" :class="dataStatusType"></span>
-      <span class="status-text">{{ dataStatusText }}</span>
-      <span class="update-time">最后更新: {{ lastUpdateTime }}</span>
     </div>
 
     <el-skeleton :loading="loading" animated>
@@ -283,58 +276,10 @@
           </div>
 
           <div v-show="activeTab === 'multiDimension'" class="section">
-            <div class="section-header">
-              <h2>多维交叉分析</h2>
-              <div class="dimension-selectors">
-                <select v-model="dimension1" @change="handleDimensionChange" class="dimension-select">
-                  <option value="vendor">供应商</option>
-                  <option value="payment">支付方式</option>
-                  <option value="airport">机场</option>
-                </select>
-                <span class="dimension-separator">×</span>
-                <select v-model="dimension2" @change="handleDimensionChange" class="dimension-select">
-                  <option value="payment">支付方式</option>
-                  <option value="vendor">供应商</option>
-                  <option value="airport">机场</option>
-                </select>
-                <span class="chart-type-separator">|</span>
-                <select v-model="crossTabChartType" @change="renderCrossTabChart" class="dimension-select">
-                  <option value="heatmap">热力图</option>
-                  <option value="bar">柱状图</option>
-                  <option value="stackedBar">堆叠柱状图</option>
-                  <option value="line">折线图</option>
-                </select>
-              </div>
-            </div>
-            <div class="multi-dimension-content">
-              <div class="cross-tab-container">
-                <div ref="crossTabChartRef" class="chart-area"></div>
-              </div>
-              <div class="dimension-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>{{ getDimensionLabel(dimension1) }}</th>
-                      <th>{{ getDimensionLabel(dimension2) }}</th>
-                      <th>订单数</th>
-                      <th>总金额</th>
-                      <th>平均金额</th>
-                      <th>占比</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(item, index) in currentMultiDimensionData" :key="index">
-                      <td>{{ item.dimension1Name || item.dimension1 }}</td>
-                      <td>{{ item.dimension2Name || item.dimension2 }}</td>
-                      <td>{{ formatNumber(item.tripCount) }}</td>
-                      <td>${{ formatNumber(item.totalAmount, 2) }}</td>
-                      <td>${{ formatNumber(item.avgAmount, 2) }}</td>
-                      <td>{{ formatNumber(item.percentage, 1) }}%</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <MultiDimensionAnalysis
+              :start-date="dateRange[0]"
+              :end-date="dateRange[1]"
+            />
           </div>
 
           <div v-show="activeTab === 'trend'" class="section">
@@ -394,15 +339,9 @@
           </div>
 
           <div v-show="activeTab === 'basic'" class="section">
-            <BasicAnalysis 
-              :airport-stats="airportStats"
-              :vendor-stats="vendorStats"
-              :payment-stats="paymentStats"
-              :distance-stats="distanceStats"
-              :duration-stats="durationStats"
-              :passenger-stats="passengerStats"
-              :tip-stats="tipStats"
-              :trip-insights="filteredTripInsights"
+            <BasicAnalysis
+              :start-date="dateRange[0]"
+              :end-date="dateRange[1]"
             />
           </div>
         </div>
@@ -416,6 +355,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { analysisApi } from '@/api/analysis'
 import BasicAnalysis from '@/components/analysis/BasicAnalysis.vue'
+import MultiDimensionAnalysis from '@/components/analysis/MultiDimensionAnalysis.vue'
 import type {
   AirportStatistics,
   VendorComparison,
@@ -437,11 +377,9 @@ const error = ref(false)
 const errorMessage = ref('')
 const dateRange = ref<[string, string]>(['2025-01-01', '2025-01-31'])
 const lastUpdateTime = ref('')
-const dataStatus = ref<'normal' | 'updating' | 'delay'>('normal')
 const predictionDays = ref(7)
 const dimension1 = ref('vendor')
 const dimension2 = ref('payment')
-const crossTabChartType = ref('heatmap')
 const activeTab = ref(localStorage.getItem('analysisActiveTab') || 'overview')
 
 const mainTabs = [
@@ -468,25 +406,14 @@ const businessInsights = ref<BusinessInsightDTO[]>([])
 const trendData = ref<TrendAnalysisDTO[]>([])
 
 const predictionChartRef = ref<HTMLElement | null>(null)
-const crossTabChartRef = ref<HTMLElement | null>(null)
 const trendChartRef = ref<HTMLElement | null>(null)
+const multiDimensionBarChartRef = ref<HTMLElement | null>(null)
+const multiDimensionPieChartRef = ref<HTMLElement | null>(null)
 
 let predictionChart: echarts.ECharts | null = null
-let crossTabChart: echarts.ECharts | null = null
 let trendChart: echarts.ECharts | null = null
-
-const dataStatusType = computed(() => dataStatus.value)
-
-const dataStatusText = computed(() => {
-  const statusMap = {
-    normal: '数据正常',
-    updating: '数据更新中',
-    delay: '数据延迟'
-  }
-  return statusMap[dataStatus.value]
-})
-
-const showStatusBar = computed(() => !loading.value && !error.value && !isEmptyData.value)
+let multiDimensionBarChart: echarts.ECharts | null = null
+let multiDimensionPieChart: echarts.ECharts | null = null
 
 const isEmptyData = computed(() => {
   return airportStats.value.length === 0 &&
@@ -653,18 +580,11 @@ const currentMultiDimensionData = computed(() => {
   return multiDimensionData.value
 })
 
-const filteredTripInsights = computed(() => {
-  const tripCategories = ['行程特征', '距离分布', '时长分析', '行程优化', '交通分析']
-  return businessInsights.value
-    .filter(insight => tripCategories.includes(insight.category))
-    .map(insight => ({
-      category: insight.category,
-      level: insight.level,
-      title: insight.title,
-      description: insight.description,
-      recommendation: insight.recommendation
-    }))
+const totalMultiDimensionAmount = computed(() => {
+  return multiDimensionData.value.reduce((sum, item) => sum + item.totalAmount, 0)
 })
+
+
 
 const formatNumber = (num: number | undefined, decimals = 0): string => {
   if (num === undefined || num === null) return '0'
@@ -682,15 +602,6 @@ const getLevelLabel = (level: string): string => {
     critical: '严重'
   }
   return levelMap[level] || level
-}
-
-const getDimensionLabel = (dimension: string): string => {
-  const labelMap: Record<string, string> = {
-    vendor: '供应商',
-    payment: '支付方式',
-    airport: '机场'
-  }
-  return labelMap[dimension] || dimension
 }
 
 const getTabBadge = (tabName: string): number => {
@@ -767,25 +678,6 @@ const loadAllData = async () => {
   }
 }
 
-const handleDimensionChange = async () => {
-  if (!dateRange.value || dateRange.value.length !== 2 || !dateRange.value[0]) return
-
-  const [startDate, endDate] = dateRange.value
-  
-  try {
-    multiDimensionData.value = await analysisApi.getMultiDimensionAnalysis({ 
-      startDate, 
-      endDate, 
-      dimension1: dimension1.value, 
-      dimension2: dimension2.value 
-    })
-    await nextTick()
-    renderCrossTabChart()
-  } catch (err) {
-    console.error('Failed to load multi-dimension data:', err)
-  }
-}
-
 const switchTab = async (tabName: string) => {
   activeTab.value = tabName
   localStorage.setItem('analysisActiveTab', tabName)
@@ -800,11 +692,11 @@ const renderCurrentTabCharts = () => {
     case 'prediction':
       renderPredictionChart()
       break
-    case 'multiDimension':
-      renderCrossTabChart()
-      break
     case 'trend':
       renderTrendChart()
+      break
+    case 'multiDimension':
+      renderMultiDimensionCharts()
       break
   }
 }
@@ -812,10 +704,12 @@ const renderCurrentTabCharts = () => {
 const disposeAllCharts = () => {
   predictionChart?.dispose()
   predictionChart = null
-  crossTabChart?.dispose()
-  crossTabChart = null
   trendChart?.dispose()
   trendChart = null
+  multiDimensionBarChart?.dispose()
+  multiDimensionBarChart = null
+  multiDimensionPieChart?.dispose()
+  multiDimensionPieChart = null
 }
 
 const ensureChartContainer = (refEl: HTMLElement | null): boolean => {
@@ -887,216 +781,7 @@ const renderPredictionChart = () => {
   }
 }
 
-const renderCrossTabChart = () => {
-  if (!ensureChartContainer(crossTabChartRef.value) || multiDimensionData.value.length === 0) return
 
-  try {
-    if (crossTabChart) {
-      crossTabChart.dispose()
-    }
-    crossTabChart = echarts.init(crossTabChartRef.value!)
-
-    const dim1Values = [...new Set(multiDimensionData.value.map(d => d.dimension1Name || d.dimension1))]
-    const dim2Values = [...new Set(multiDimensionData.value.map(d => d.dimension2Name || d.dimension2))]
-    
-    let option: echarts.EChartsOption
-
-    if (crossTabChartType.value === 'heatmap') {
-      const heatmapData = multiDimensionData.value.map(d => {
-        const xIndex = dim2Values.indexOf(d.dimension2Name || d.dimension2)
-        const yIndex = dim1Values.indexOf(d.dimension1Name || d.dimension1)
-        return [xIndex, yIndex, d.tripCount] as [number, number, number]
-      })
-
-      option = {
-        tooltip: {
-          position: 'top',
-          formatter: (params: any) => {
-            const dim1Val = dim1Values[params.data[1]]
-            const dim2Val = dim2Values[params.data[0]]
-            const data = multiDimensionData.value.find(d => 
-              (d.dimension1Name || d.dimension1) === dim1Val && 
-              (d.dimension2Name || d.dimension2) === dim2Val
-            )
-            if (data) {
-              return `${data.dimension1Name || data.dimension1} × ${data.dimension2Name || data.dimension2}<br/>订单数: ${formatNumber(data.tripCount)}<br/>总金额: $${formatNumber(data.totalAmount, 2)}<br/>平均金额: $${formatNumber(data.avgAmount, 2)}<br/>占比: ${formatNumber(data.percentage, 1)}%`
-            }
-            return `${dim1Val} × ${dim2Val}<br/>订单数: ${formatNumber(params.data[2])}`
-          }
-        },
-        grid: { left: '15%', right: '15%', top: '10%', bottom: '15%' },
-        xAxis: {
-          type: 'category',
-          data: dim2Values,
-          splitArea: { show: true },
-          axisLabel: { rotate: dim2Values.length > 4 ? 30 : 0 }
-        },
-        yAxis: {
-          type: 'category',
-          data: dim1Values,
-          splitArea: { show: true }
-        },
-        visualMap: {
-          min: 0,
-          max: Math.max(...multiDimensionData.value.map(d => d.tripCount)),
-          calculable: true,
-          orient: 'horizontal',
-          left: 'center',
-          bottom: '0%',
-          inRange: {
-            color: ['#e0f2fe', '#7dd3fc', '#38bdf8', '#0ea5e9', '#0284c7']
-          }
-        },
-        series: [{
-          name: '订单数',
-          type: 'heatmap',
-          data: heatmapData,
-          label: { show: true, color: '#fff', fontSize: 12, fontWeight: 'bold' },
-          emphasis: {
-            itemStyle: {
-              shadowBlur: 10,
-              shadowColor: 'rgba(0, 0, 0, 0.5)'
-            }
-          }
-        }]
-      }
-    } else if (crossTabChartType.value === 'bar') {
-      const series = dim1Values.map((dim1, index) => ({
-        name: dim1,
-        type: 'bar' as const,
-        data: dim2Values.map(dim2 => {
-          const item = multiDimensionData.value.find(d => 
-            (d.dimension1Name || d.dimension1) === dim1 && 
-            (d.dimension2Name || d.dimension2) === dim2
-          )
-          return item?.tripCount || 0
-        }),
-        itemStyle: {
-          color: echarts.color.modifyAlpha('#3b82f6', 1 - index * 0.15)
-        }
-      }))
-
-      option = {
-        tooltip: {
-          trigger: 'axis',
-          axisPointer: { type: 'shadow' },
-          formatter: (params: any) => {
-            let result = `${params[0].axisValue}<br/>`
-            params.forEach((param: any) => {
-              result += `${param.marker} ${param.seriesName}: ${formatNumber(param.value)}<br/>`
-            })
-            return result
-          }
-        },
-        legend: { 
-          data: dim1Values,
-          top: 0
-        },
-        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-        xAxis: {
-          type: 'category',
-          data: dim2Values,
-          axisLabel: { rotate: dim2Values.length > 4 ? 30 : 0 }
-        },
-        yAxis: { type: 'value', name: '订单数' },
-        series
-      }
-    } else if (crossTabChartType.value === 'stackedBar') {
-      const series = dim1Values.map((dim1, index) => ({
-        name: dim1,
-        type: 'bar' as const,
-        stack: 'total',
-        data: dim2Values.map(dim2 => {
-          const item = multiDimensionData.value.find(d => 
-            (d.dimension1Name || d.dimension1) === dim1 && 
-            (d.dimension2Name || d.dimension2) === dim2
-          )
-          return item?.tripCount || 0
-        }),
-        itemStyle: {
-          color: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]
-        }
-      }))
-
-      option = {
-        tooltip: {
-          trigger: 'axis',
-          axisPointer: { type: 'shadow' },
-          formatter: (params: any) => {
-            let result = `${params[0].axisValue}<br/>`
-            let total = 0
-            params.forEach((param: any) => {
-              total += param.value
-              result += `${param.marker} ${param.seriesName}: ${formatNumber(param.value)}<br/>`
-            })
-            result += `总计: ${formatNumber(total)}`
-            return result
-          }
-        },
-        legend: { 
-          data: dim1Values,
-          top: 0
-        },
-        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-        xAxis: {
-          type: 'category',
-          data: dim2Values,
-          axisLabel: { rotate: dim2Values.length > 4 ? 30 : 0 }
-        },
-        yAxis: { type: 'value', name: '订单数' },
-        series
-      }
-    } else {
-      const series = dim1Values.map((dim1, index) => ({
-        name: dim1,
-        type: 'line' as const,
-        smooth: true,
-        data: dim2Values.map(dim2 => {
-          const item = multiDimensionData.value.find(d => 
-            (d.dimension1Name || d.dimension1) === dim1 && 
-            (d.dimension2Name || d.dimension2) === dim2
-          )
-          return item?.tripCount || 0
-        }),
-        lineStyle: { width: 3 },
-        itemStyle: {
-          color: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]
-        },
-        symbol: 'circle',
-        symbolSize: 8
-      }))
-
-      option = {
-        tooltip: {
-          trigger: 'axis',
-          formatter: (params: any) => {
-            let result = `${params[0].axisValue}<br/>`
-            params.forEach((param: any) => {
-              result += `${param.marker} ${param.seriesName}: ${formatNumber(param.value)}<br/>`
-            })
-            return result
-          }
-        },
-        legend: { 
-          data: dim1Values,
-          top: 0
-        },
-        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-        xAxis: {
-          type: 'category',
-          data: dim2Values,
-          axisLabel: { rotate: dim2Values.length > 4 ? 30 : 0 }
-        },
-        yAxis: { type: 'value', name: '订单数' },
-        series
-      }
-    }
-
-    crossTabChart.setOption(option)
-  } catch (err) {
-    console.error('Failed to render cross-tab chart:', err)
-  }
-}
 
 const renderTrendChart = () => {
   if (!ensureChartContainer(trendChartRef.value) || trendData.value.length === 0) return
@@ -1198,12 +883,123 @@ const renderTrendChart = () => {
   }
 }
 
+const renderMultiDimensionCharts = () => {
+  renderMultiDimensionBarChart()
+  renderMultiDimensionPieChart()
+}
 
+const renderMultiDimensionBarChart = () => {
+  if (!ensureChartContainer(multiDimensionBarChartRef.value) || currentMultiDimensionData.value.length === 0) return
+
+  try {
+    multiDimensionBarChart = echarts.init(multiDimensionBarChartRef.value!)
+
+    const topData = currentMultiDimensionData.value.slice(0, 10)
+    const labels = topData.map(item => `${item.dimension1Name || item.dimension1} × ${item.dimension2Name || item.dimension2}`)
+    const tripCounts = topData.map(item => item.tripCount)
+    const amounts = topData.map(item => item.totalAmount)
+
+    const option: echarts.EChartsOption = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: (params: any) => {
+          const barData = params[0]
+          const lineData = params[1]
+          return `${barData.name}<br/>订单数: ${formatNumber(barData.value)}<br/>总金额: $${formatNumber(lineData.value, 2)}`
+        }
+      },
+      legend: { data: ['订单数', '总金额(千$)'], top: 0 },
+      grid: { left: '3%', right: '4%', bottom: '3%', top: '15%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: labels,
+        axisLabel: { rotate: 45, fontSize: 11 }
+      },
+      yAxis: [
+        { type: 'value', name: '订单数', position: 'left' },
+        { type: 'value', name: '金额(千$)', position: 'right', axisLabel: { formatter: (v: number) => (v / 1000).toFixed(1) } }
+      ],
+      series: [
+        {
+          name: '订单数',
+          type: 'bar',
+          data: tripCounts,
+          itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+          barMaxWidth: 40
+        },
+        {
+          name: '总金额(千$)',
+          type: 'line',
+          yAxisIndex: 1,
+          data: amounts,
+          smooth: true,
+          lineStyle: { width: 3, color: '#10b981' },
+          itemStyle: { color: '#10b981' },
+          symbol: 'circle',
+          symbolSize: 8
+        }
+      ]
+    }
+
+    multiDimensionBarChart.setOption(option)
+  } catch (err) {
+    console.error('Failed to render multi-dimension bar chart:', err)
+  }
+}
+
+const renderMultiDimensionPieChart = () => {
+  if (!ensureChartContainer(multiDimensionPieChartRef.value) || currentMultiDimensionData.value.length === 0) return
+
+  try {
+    multiDimensionPieChart = echarts.init(multiDimensionPieChartRef.value!)
+
+    const topData = currentMultiDimensionData.value.slice(0, 10)
+    const pieData = topData.map(item => ({
+      name: `${item.dimension1Name || item.dimension1} × ${item.dimension2Name || item.dimension2}`,
+      value: item.totalAmount
+    }))
+
+    const option: echarts.EChartsOption = {
+      tooltip: {
+        trigger: 'item',
+        formatter: (params: any) => {
+          const percent = ((params.value / totalMultiDimensionAmount.value) * 100).toFixed(1)
+          return `${params.name}<br/>金额: $${formatNumber(params.value, 2)} (${percent}%)`
+        }
+      },
+      legend: {
+        orient: 'vertical',
+        right: '5%',
+        top: 'center',
+        itemWidth: 12,
+        itemHeight: 12,
+        textStyle: { fontSize: 11 }
+      },
+      series: [{
+        name: '金额分布',
+        type: 'pie',
+        radius: ['40%', '70%'],
+        center: ['35%', '55%'],
+        avoidLabelOverlap: true,
+        itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
+        label: { show: true, formatter: '{b}: {d}%', fontSize: 11 },
+        emphasis: { label: { show: true, fontSize: 13, fontWeight: 'bold' } },
+        data: pieData
+      }]
+    }
+
+    multiDimensionPieChart.setOption(option)
+  } catch (err) {
+    console.error('Failed to render multi-dimension pie chart:', err)
+  }
+}
 
 const handleResize = () => {
   predictionChart?.resize()
-  crossTabChart?.resize()
   trendChart?.resize()
+  multiDimensionBarChart?.resize()
+  multiDimensionPieChart?.resize()
 }
 
 onMounted(() => {
@@ -1224,83 +1020,47 @@ onUnmounted(() => {
   min-height: 100vh;
 }
 
-.page-header {
+.dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 20px;
+  padding: 20px 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   margin-bottom: 24px;
-  padding: 24px;
-  background-color: #ffffff;
-  border-radius: 8px;
-
-  .header-content {
-    h1 {
-      margin: 0 0 8px 0;
-      font-size: 28px;
-      font-weight: 600;
-      color: #1f2937;
-    }
-
-    p {
-      margin: 0;
-      font-size: 14px;
-      color: #6b7280;
-    }
-  }
-
-  .header-controls {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-
-    .date-range-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-
-      .label {
-        font-size: 14px;
-        color: #6b7280;
-      }
-    }
-
-    .date-picker {
-      width: 280px;
-    }
-  }
 }
 
-.data-status-bar {
+.header-left {
+  flex: 1;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.header-right {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  background-color: #ffffff;
-  border-radius: 8px;
-  margin-bottom: 24px;
+}
 
-  .status-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+.date-range-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 
-    &.normal { background-color: #10b981; }
-    &.updating { background-color: #f59e0b; }
-    &.delay { background-color: #ef4444; }
-  }
-
-  .status-text {
-    font-size: 14px;
-    color: #374151;
-    font-weight: 500;
-  }
-
-  .update-time {
-    margin-left: auto;
-    font-size: 12px;
-    color: #9ca3af;
+  .date-picker {
+    width: 280px;
   }
 }
 
@@ -2330,7 +2090,7 @@ onUnmounted(() => {
     flex-wrap: nowrap;
   }
 
-  .page-header {
+  .dashboard-header {
     flex-direction: column;
     align-items: flex-start;
   }

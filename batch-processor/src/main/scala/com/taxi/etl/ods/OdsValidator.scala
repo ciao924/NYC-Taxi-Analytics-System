@@ -75,6 +75,7 @@ object OdsValidator {
 
     val yellowTable = "nyc_taxi_ods.taxi_trip_yellow_ods"
     val greenTable = "nyc_taxi_ods.taxi_trip_green_ods"
+    val monthList = months.mkString(",")
 
     // 验证黄表关键字段空值率
     val yellowNullCheck = spark.sql(
@@ -87,16 +88,20 @@ object OdsValidator {
          |  SUM(CASE WHEN DOLocationID IS NULL THEN 1 ELSE 0 END) AS do_null,
          |  COUNT(*) AS total
          |FROM $yellowTable
-         |WHERE year = $year AND month IN (${months.mkString(",")})
+         |WHERE year = $year AND month IN ($monthList)
        """.stripMargin).collect()(0)
 
-    val yellowTotal = yellowNullCheck.getLong(5)
-    logger.info(s"黄表字段完整性:")
-    logger.info(s"  VendorID 空值率: ${yellowNullCheck.getLong(0) * 100.0 / yellowTotal}%.2f%%")
-    logger.info(s"  pickup_datetime 空值率: ${yellowNullCheck.getLong(1) * 100.0 / yellowTotal}%.2f%%")
-    logger.info(s"  dropoff_datetime 空值率: ${yellowNullCheck.getLong(2) * 100.0 / yellowTotal}%.2f%%")
-    logger.info(s"  PULocationID 空值率: ${yellowNullCheck.getLong(3) * 100.0 / yellowTotal}%.2f%%")
-    logger.info(s"  DOLocationID 空值率: ${yellowNullCheck.getLong(4) * 100.0 / yellowTotal}%.2f%%")
+    val yellowTotal = if (yellowNullCheck == null) 0L else yellowNullCheck.getLong(5)
+    if (yellowTotal == 0) {
+      logger.info("  ⚠️ 黄表无数据，跳过字段完整性检查")
+    } else {
+      logger.info(s"黄表字段完整性:")
+      logger.info(s"  VendorID 空值率: ${yellowNullCheck.getLong(0) * 100.0 / yellowTotal}%.2f%%")
+      logger.info(s"  pickup_datetime 空值率: ${yellowNullCheck.getLong(1) * 100.0 / yellowTotal}%.2f%%")
+      logger.info(s"  dropoff_datetime 空值率: ${yellowNullCheck.getLong(2) * 100.0 / yellowTotal}%.2f%%")
+      logger.info(s"  PULocationID 空值率: ${yellowNullCheck.getLong(3) * 100.0 / yellowTotal}%.2f%%")
+      logger.info(s"  DOLocationID 空值率: ${yellowNullCheck.getLong(4) * 100.0 / yellowTotal}%.2f%%")
+    }
 
     // 验证绿表关键字段空值率
     val greenNullCheck = spark.sql(
@@ -109,16 +114,20 @@ object OdsValidator {
          |  SUM(CASE WHEN DOLocationID IS NULL THEN 1 ELSE 0 END) AS do_null,
          |  COUNT(*) AS total
          |FROM $greenTable
-         |WHERE year = $year AND month IN (${months.mkString(",")})
+         |WHERE year = $year AND month IN ($monthList)
        """.stripMargin).collect()(0)
 
-    val greenTotal = greenNullCheck.getLong(5)
-    logger.info(s"绿表字段完整性:")
-    logger.info(s"  VendorID 空值率: ${greenNullCheck.getLong(0) * 100.0 / greenTotal}%.2f%%")
-    logger.info(s"  pickup_datetime 空值率: ${greenNullCheck.getLong(1) * 100.0 / greenTotal}%.2f%%")
-    logger.info(s"  dropoff_datetime 空值率: ${greenNullCheck.getLong(2) * 100.0 / greenTotal}%.2f%%")
-    logger.info(s"  PULocationID 空值率: ${greenNullCheck.getLong(3) * 100.0 / greenTotal}%.2f%%")
-    logger.info(s"  DOLocationID 空值率: ${greenNullCheck.getLong(4) * 100.0 / greenTotal}%.2f%%")
+    val greenTotal = if (greenNullCheck == null) 0L else greenNullCheck.getLong(5)
+    if (greenTotal == 0) {
+      logger.info("  ⚠️ 绿表无数据，跳过字段完整性检查")
+    } else {
+      logger.info(s"绿表字段完整性:")
+      logger.info(s"  VendorID 空值率: ${greenNullCheck.getLong(0) * 100.0 / greenTotal}%.2f%%")
+      logger.info(s"  pickup_datetime 空值率: ${greenNullCheck.getLong(1) * 100.0 / greenTotal}%.2f%%")
+      logger.info(s"  dropoff_datetime 空值率: ${greenNullCheck.getLong(2) * 100.0 / greenTotal}%.2f%%")
+      logger.info(s"  PULocationID 空值率: ${greenNullCheck.getLong(3) * 100.0 / greenTotal}%.2f%%")
+      logger.info(s"  DOLocationID 空值率: ${greenNullCheck.getLong(4) * 100.0 / greenTotal}%.2f%%")
+    }
 
     // 验证UTF-8编码（检查是否有非ASCII字符导致的乱码）
     // 通过检查 store_and_fwd_flag 字段是否有异常值
@@ -126,7 +135,7 @@ object OdsValidator {
       s"""
          |SELECT COUNT(*) AS abnormal
          |FROM $yellowTable
-         |WHERE year = $year AND month IN (${months.mkString(",")})
+         |WHERE year = $year AND month IN ($monthList)
          |  AND store_and_fwd_flag NOT IN ('Y', 'N', '')
        """.stripMargin).collect()(0).getLong(0)
 
@@ -134,7 +143,7 @@ object OdsValidator {
       s"""
          |SELECT COUNT(*) AS abnormal
          |FROM $greenTable
-         |WHERE year = $year AND month IN (${months.mkString(",")})
+         |WHERE year = $year AND month IN ($monthList)
          |  AND store_and_fwd_flag NOT IN ('Y', 'N', '')
        """.stripMargin).collect()(0).getLong(0)
 

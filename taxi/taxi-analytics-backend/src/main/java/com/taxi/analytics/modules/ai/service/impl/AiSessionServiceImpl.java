@@ -22,7 +22,14 @@ public class AiSessionServiceImpl implements AiSessionService {
     public String createSession(String sessionName) {
         String sessionId = UUID.randomUUID().toString();
         LocalDateTime now = LocalDateTime.now();
-        aiMapper.createSession(sessionId, sessionName, now, now);
+        aiMapper.createSession(sessionId, null, sessionName != null ? sessionName : "新对话", 0, now, now, now);
+        return sessionId;
+    }
+
+    @Override
+    public String createSession(String sessionId, String sessionName) {
+        LocalDateTime now = LocalDateTime.now();
+        aiMapper.createSession(sessionId, null, sessionName != null ? sessionName : "新对话", 0, now, now, now);
         return sessionId;
     }
 
@@ -33,7 +40,8 @@ public class AiSessionServiceImpl implements AiSessionService {
 
     @Override
     public boolean updateSession(String sessionId, String sessionName) {
-        return aiMapper.updateSession(sessionId, sessionName, LocalDateTime.now()) > 0;
+        LocalDateTime now = LocalDateTime.now();
+        return aiMapper.updateSession(sessionId, sessionName, now, now) > 0;
     }
 
     @Override
@@ -47,9 +55,11 @@ public class AiSessionServiceImpl implements AiSessionService {
     }
 
     @Override
-    public void saveMessage(String sessionId, String role, String content, String type, Long executionTime, Integer rowCount) {
+    public void saveMessage(String sessionId, String role, String content, String sqlText, String chartData, Integer executionTimeMs, Integer rowCount) {
         String messageId = UUID.randomUUID().toString();
-        aiMapper.saveMessage(messageId, sessionId, role, content, type, LocalDateTime.now(), executionTime, rowCount);
+        LocalDateTime now = LocalDateTime.now();
+        aiMapper.saveMessage(sessionId, messageId, role, content, sqlText, chartData, executionTimeMs, rowCount, now);
+        aiMapper.incrementMessageCount(sessionId, now);
     }
 
     @Override
@@ -63,14 +73,14 @@ public class AiSessionServiceImpl implements AiSessionService {
     }
 
     @Override
-    public boolean saveFeedback(String messageId, String feedback) {
-        return aiMapper.saveFeedback(messageId, feedback) > 0;
+    public boolean saveFeedback(String messageId, Integer feedbackScore, String feedbackComment) {
+        return aiMapper.saveFeedback(messageId, feedbackScore, feedbackComment) > 0;
     }
 
     @Override
-    public boolean addFavorite(String userId, String queryText) {
-        String favoriteId = UUID.randomUUID().toString();
-        return aiMapper.addFavorite(favoriteId, userId, queryText, LocalDateTime.now()) > 0;
+    public boolean addFavorite(String userId, String queryText, String queryName) {
+        LocalDateTime now = LocalDateTime.now();
+        return aiMapper.addFavorite(userId, queryText, queryName, 0, now, now, now) > 0;
     }
 
     @Override
@@ -79,14 +89,15 @@ public class AiSessionServiceImpl implements AiSessionService {
     }
 
     @Override
-    public boolean removeFavorite(String favoriteId) {
+    public boolean removeFavorite(Long favoriteId) {
         return aiMapper.removeFavorite(favoriteId) > 0;
     }
 
     @Override
-    public String createScheduledTask(String userId, String queryText, LocalDateTime scheduleTime) {
+    public String createScheduledTask(String userId, String taskName, String queryText, String scheduleCron, String pushType, String pushTarget) {
         String taskId = UUID.randomUUID().toString();
-        aiMapper.createScheduledTask(taskId, userId, queryText, scheduleTime, "PENDING", LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        aiMapper.createScheduledTask(userId, taskName, queryText, scheduleCron, pushType, pushTarget, 1, now, now, now, now);
         return taskId;
     }
 
@@ -96,7 +107,7 @@ public class AiSessionServiceImpl implements AiSessionService {
     }
 
     @Override
-    public boolean deleteScheduledTask(String taskId) {
+    public boolean deleteScheduledTask(Long taskId) {
         return aiMapper.deleteScheduledTask(taskId) > 0;
     }
 }

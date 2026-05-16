@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.taxi.analytics.modules.ai.mapper.AiDbMapper">
+
+    <resultMap id="AiChatSessionResultMap" type="com.taxi.analytics.modules.ai.entity.AiChatSession">
+        <id column="id" property="id"/>
+        <result column="session_id" property="sessionId"/>
+        <result column="user_id" property="userId"/>
+        <result column="session_name" property="sessionName"/>
+        <result column="message_count" property="messageCount"/>
+        <result column="last_message_time" property="lastMessageTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <resultMap id="AiMessageResultMap" type="com.taxi.analytics.modules.ai.entity.AiMessage">
+        <id column="id" property="id"/>
+        <result column="session_id" property="sessionId"/>
+        <result column="message_id" property="messageId"/>
+        <result column="role" property="role"/>
+        <result column="content" property="content"/>
+        <result column="sql_text" property="sqlText"/>
+        <result column="chart_data" property="chartData"/>
+        <result column="execution_time_ms" property="executionTimeMs"/>
+        <result column="row_count" property="rowCount"/>
+        <result column="feedback_score" property="feedbackScore"/>
+        <result column="feedback_comment" property="feedbackComment"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <resultMap id="AiFavoriteQueryResultMap" type="com.taxi.analytics.modules.ai.entity.AiFavoriteQuery">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="query_text" property="queryText"/>
+        <result column="query_name" property="queryName"/>
+        <result column="execution_count" property="executionCount"/>
+        <result column="last_execute_time" property="lastExecuteTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <resultMap id="AiScheduledQueryResultMap" type="com.taxi.analytics.modules.ai.entity.AiScheduledQuery">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="task_name" property="taskName"/>
+        <result column="query_text" property="queryText"/>
+        <result column="schedule_cron" property="scheduleCron"/>
+        <result column="push_type" property="pushType"/>
+        <result column="push_target" property="pushTarget"/>
+        <result column="enabled" property="enabled"/>
+        <result column="last_run_time" property="lastRunTime"/>
+        <result column="next_run_time" property="nextRunTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectBySessionId" resultMap="AiChatSessionResultMap">
+        SELECT * FROM ai_chat_session WHERE session_id = #{sessionId}
+    </select>
+
+    <select id="selectAllSessions" resultMap="AiChatSessionResultMap">
+        SELECT * FROM ai_chat_session ORDER BY last_message_time DESC
+    </select>
+
+    <insert id="insertSession" parameterType="com.taxi.analytics.modules.ai.entity.AiChatSession" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_chat_session (session_id, user_id, session_name, message_count, last_message_time, create_time, update_time)
+        VALUES (#{sessionId}, #{userId}, #{sessionName}, #{messageCount}, #{lastMessageTime}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="updateSessionName">
+        UPDATE ai_chat_session
+        SET session_name = #{sessionName}, update_time = #{updateTime}
+        WHERE session_id = #{sessionId}
+    </update>
+
+    <delete id="deleteSession">
+        DELETE FROM ai_chat_session WHERE session_id = #{sessionId}
+    </delete>
+
+    <update id="incrementMessageCount">
+        UPDATE ai_chat_session
+        SET message_count = message_count + 1,
+            last_message_time = #{lastMessageTime},
+            update_time = #{lastMessageTime}
+        WHERE session_id = #{sessionId}
+    </update>
+
+    <select id="selectMessageByMessageId" resultMap="AiMessageResultMap">
+        SELECT * FROM ai_message WHERE message_id = #{messageId}
+    </select>
+
+    <select id="selectMessagesBySessionId" resultMap="AiMessageResultMap">
+        SELECT * FROM ai_message WHERE session_id = #{sessionId} ORDER BY create_time ASC
+    </select>
+
+    <insert id="insertMessage" parameterType="com.taxi.analytics.modules.ai.entity.AiMessage" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_message (session_id, message_id, role, content, sql_text, chart_data, execution_time_ms, row_count, feedback_score, feedback_comment, create_time)
+        VALUES (#{sessionId}, #{messageId}, #{role}, #{content}, #{sqlText}, #{chartData}, #{executionTimeMs}, #{rowCount}, #{feedbackScore}, #{feedbackComment}, #{createTime})
+    </insert>
+
+    <update id="updateMessageFeedback">
+        UPDATE ai_message
+        SET feedback_score = #{feedbackScore},
+            feedback_comment = #{feedbackComment}
+        WHERE message_id = #{messageId}
+    </update>
+
+    <select id="selectFavoritesByUserId" resultMap="AiFavoriteQueryResultMap">
+        SELECT * FROM ai_favorite_query WHERE user_id = #{userId} ORDER BY create_time DESC
+    </select>
+
+    <insert id="insertFavorite" parameterType="com.taxi.analytics.modules.ai.entity.AiFavoriteQuery" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_favorite_query (user_id, query_text, query_name, execution_count, last_execute_time, create_time, update_time)
+        VALUES (#{userId}, #{queryText}, #{queryName}, #{executionCount}, #{lastExecuteTime}, #{createTime}, #{updateTime})
+    </insert>
+
+    <delete id="deleteFavorite">
+        DELETE FROM ai_favorite_query WHERE id = #{id}
+    </delete>
+
+    <update id="incrementExecutionCount">
+        UPDATE ai_favorite_query
+        SET execution_count = execution_count + 1,
+            last_execute_time = #{lastExecuteTime}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectScheduledTasksByUserId" resultMap="AiScheduledQueryResultMap">
+        SELECT * FROM ai_scheduled_query WHERE user_id = #{userId} ORDER BY create_time DESC
+    </select>
+
+    <insert id="insertScheduledTask" parameterType="com.taxi.analytics.modules.ai.entity.AiScheduledQuery" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_scheduled_query (user_id, task_name, query_text, schedule_cron, push_type, push_target, enabled, last_run_time, next_run_time, create_time, update_time)
+        VALUES (#{userId}, #{taskName}, #{queryText}, #{scheduleCron}, #{pushType}, #{pushTarget}, #{enabled}, #{lastRunTime}, #{nextRunTime}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="updateScheduledTaskStatus">
+        UPDATE ai_scheduled_query
+        SET last_run_time = #{lastRunTime},
+            next_run_time = #{nextRunTime}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteScheduledTask">
+        DELETE FROM ai_scheduled_query WHERE id = #{id}
+    </delete>
+
+</mapper>

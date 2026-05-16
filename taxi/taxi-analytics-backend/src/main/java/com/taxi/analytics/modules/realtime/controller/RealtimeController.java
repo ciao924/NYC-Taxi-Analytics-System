@@ -15,7 +15,7 @@ import java.util.Map;
 
 @Tag(name = "Realtime", description = "实时看板API")
 @RestController
-@RequestMapping("/api/realtime")
+@RequestMapping("/realtime")
 @RequiredArgsConstructor
 public class RealtimeController {
 
@@ -30,9 +30,8 @@ public class RealtimeController {
     @Operation(summary = "获取最新5分钟热点区域")
     @GetMapping("/hotspot")
     public Result<List<Map<String, Object>>> getHotspot(
-            @RequestParam(defaultValue = "pickup") String type,
-            @RequestParam(defaultValue = "20") int limit) {
-        return Result.success(realtimeService.getHotspot(type, limit));
+            @RequestParam(defaultValue = "10") int limit) {
+        return Result.success(realtimeService.getHotspot(limit));
     }
 
     @Operation(summary = "获取实时费用构成")

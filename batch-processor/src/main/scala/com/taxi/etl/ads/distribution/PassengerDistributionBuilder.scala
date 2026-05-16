@@ -14,6 +14,8 @@ object PassengerDistributionBuilder {
   private val logger = LoggerFactory.getLogger(getClass)
   private val TABLE_NAME = AdsConstants.TableNames.PASSENGER_DISTRIBUTION
   private val UNIQUE_KEYS = AdsConstants.UniqueKeys.DATE_PASSENGER
+  private val DWD_TABLE = "nyc_taxi_dwd.fact_taxi_trips"
+  private val DWS_DATABASE = "nyc_taxi_dws"
 
   def build(
              spark: SparkSession,
@@ -25,15 +27,26 @@ object PassengerDistributionBuilder {
            ): BuilderResult = {
     import spark.implicits._
     try {
-      val filteredDf = df.filter(col("stat_date") >= startDate && col("stat_date") <= endDate)
+      val startTime = System.currentTimeMillis()
+      logger.info(s"开始构建 $TABLE_NAME, 日期范围: $startDate ~ $endDate")
 
-      val resultDf = filteredDf
-        .groupBy("stat_date", "passenger_count")
+      val dwdDf = spark.table(DWD_TABLE)
+        .filter(col("pickup_date") >= lit(startDate))
+        .filter(col("pickup_date") <= lit(endDate))
+        .filter(col("passenger_count").isNotNull)
+        .filter(col("passenger_count") > 0)
+
+      val passengerStats = dwdDf
+        .groupBy(col("pickup_date").as("stat_date"), col("passenger_count"))
         .agg(
           count("*").as("trip_count"),
-          round(avg("passenger_count"), 2).as("avg_passenger_count")
+          round(sum("total_amount"), 2).as("total_revenue"),
+          round(avg("total_amount"), 2).as("avg_amount"),
+          round(avg("trip_distance"), 2).as("avg_distance")
         )
-        .withColumn("passenger_range", 
+
+      val resultDf = passengerStats
+        .withColumn("passenger_range",
           when(col("passenger_count") === 1, "1人")
           .when(col("passenger_count") === 2, "2人")
           .when(col("passenger_count") === 3, "3人")
@@ -77,6 +90,9 @@ object PassengerDistributionBuilder {
       metrics.recordJobMetric("ADS", ctx.executionId, s"${TABLE_NAME}_rows", rowCount.toDouble)
       metrics.recordJobMetric("ADS", ctx.executionId, s"${TABLE_NAME}_quality", if (qualityPass) 1.0 else 0.0)
 
+      val duration = (System.currentTimeMillis() - startTime) / 1000
+      logger.info(s"✅ $TABLE_NAME 构建完成, 耗时: ${duration}s, 行数: $rowCount")
+
       BuilderResult(success = true, rowCount = rowCount)
 
     } catch {
@@ -92,7 +108,7 @@ object PassengerDistributionBuilder {
       val end = java.time.LocalDate.parse(endDate)
       (end.toEpochDay - start.toEpochDay + 1).toInt
     } catch {
-      case _: Exception => 1
+      case _: Exception => 90
     }
   }
 }

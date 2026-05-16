@@ -45,6 +45,7 @@ object DwsLayerBuilder {
       logger.info("=" * 80)
 
       // 【优化1】只选择需要的列，减少内存占用
+      // 分区字段使用 int 类型
       val dwdRaw = spark.table("nyc_taxi_dwd.fact_taxi_trips")
         .filter(col("year") === targetYear)
         .filter(col("month").isin(targetMonths: _*))

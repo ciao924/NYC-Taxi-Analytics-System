@@ -2,16 +2,32 @@ server:
   port: 8080
   servlet:
     context-path: /api
+    encoding:
+      enabled: true
+      charset: UTF-8
+      force: true
   tomcat:
     threads:
       max: 200
       min-spare: 10
     connection-timeout: 30000
     max-connections: 10000
+    uri-encoding: UTF-8
 
 spring:
   application:
     name: taxi-analytics-backend
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+  http:
+    encoding:
+      enabled: true
+      charset: UTF-8
+      force: true
+      force-request: true
+      force-response: true
   datasource:
     dynamic:
       primary: ads
@@ -19,19 +35,36 @@ spring:
       datasource:
         ads:
           driver-class-name: com.mysql.cj.jdbc.Driver
-          url: jdbc:mysql://${MYSQL_HOST:192.168.127.102}:${MYSQL_PORT:3306}/nyc_taxi_ads?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+          url: jdbc:mysql://${MYSQL_HOST:192.168.127.102}:${MYSQL_PORT:3306}/nyc_taxi_ads?useUnicode=true&characterEncoding=utf8&characterSetResults=utf8mb4&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
           username: ${MYSQL_USER:root}
           password: ${MYSQL_PASSWORD:BAi@123456}
+          hikari:
+            connection-init-sql: SET NAMES utf8mb4
+            connection-properties: characterEncoding=utf8;useUnicode=true;characterSetResults=utf8mb4
         quality:
           driver-class-name: com.mysql.cj.jdbc.Driver
-          url: jdbc:mysql://${MYSQL_HOST:192.168.127.102}:${MYSQL_PORT:3306}/nyc_taxi_quality?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+          url: jdbc:mysql://${MYSQL_HOST:192.168.127.102}:${MYSQL_PORT:3306}/nyc_taxi_quality?useUnicode=true&characterEncoding=utf8&characterSetResults=utf8mb4&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
           username: ${MYSQL_USER:root}
           password: ${MYSQL_PASSWORD:BAi@123456}
+          hikari:
+            connection-init-sql: SET NAMES utf8mb4
+            connection-properties: characterEncoding=utf8;useUnicode=true;characterSetResults=utf8mb4
         ai:
           driver-class-name: com.mysql.cj.jdbc.Driver
-          url: jdbc:mysql://${MYSQL_HOST:192.168.127.102}:${MYSQL_PORT:3306}/nyc_taxi_ai?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+          url: jdbc:mysql://${MYSQL_HOST:192.168.127.102}:${MYSQL_PORT:3306}/nyc_taxi_ai?useUnicode=true&characterEncoding=utf8&characterSetResults=utf8mb4&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
           username: ${MYSQL_USER:root}
           password: ${MYSQL_PASSWORD:BAi@123456}
+          hikari:
+            connection-init-sql: SET NAMES utf8mb4
+            connection-properties: characterEncoding=utf8;useUnicode=true;characterSetResults=utf8mb4
+        realtime:
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://${MYSQL_HOST:192.168.127.102}:${MYSQL_PORT:3306}/nyc_taxi_realtime?useUnicode=true&characterEncoding=utf8&characterSetResults=utf8mb4&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+          username: ${MYSQL_USER:root}
+          password: ${MYSQL_PASSWORD:BAi@123456}
+          hikari:
+            connection-init-sql: SET NAMES utf8mb4
+            connection-properties: characterEncoding=utf8;useUnicode=true;characterSetResults=utf8mb4
       hikari:
         minimum-idle: 5
         maximum-pool-size: 20
@@ -55,6 +88,8 @@ mybatis-plus:
     map-underscore-to-camel-case: true
     cache-enabled: false
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+    default-statement-timeout: 30
+    jdbc-type-for-null: 'null'
 
 # 异步导出配置
 taxi:
@@ -100,7 +135,11 @@ logging:
 ai:
   coze:
     api-url: ${COZE_API_URL:https://k376w6hmfv.coze.site/stream_run}
-    timeout: ${COZE_TIMEOUT:5000}
+    token: ${COZE_TOKEN:eyJhbGciOiJSUzI1NiIsImtpZCI6IjMxMWQwNzVjLTY2NDktNDdmYi04MWUxLTJmZDIyYTJmMTgxOSJ9.eyJpc3MiOiJodHRwczovL2FwaS5jb3plLmNuIiwiYXVkIjpbInh3YlVVSTBBMGdFdHJCUXZuN2h1RjZOSnBiVkpFN0VvIl0sImV4cCI6ODIxMDI2Njg3Njc5OSwiaWF0IjoxNzc2ODI5MjA4LCJzdWIiOiJzcGlmZmU6Ly9hcGkuY296ZS5jbi93b3JrbG9hZF9pZGVudGl0eS9pZDo3NjMxMzg5MjkwNDU0MzE5MTQ0Iiwic3JjIjoiaW5ib3VuZF9hdXRoX2FjY2Vzc190b2tlbl9pZDo3NjMxNDIzMzM5NzU5NjY1MTYyIn0.fqg8ck2wahFaTKb9lG1cASt-FY5SS-6xbcU17l46ANU9IAZcKXjPWmr8M653lq0_9TBjtg556Hc4d4uEzanYszArIkA3dGMHW6wYTsFiAIUGBaKGX3jCWeDHNgLgRedPkhBzGlLpvdvqZthwj-GYQftcFZ6ctj44a8jDL9DXeMmOWKxUVETl6PydlFzyLFJ6h2t6_irDWvpej7uTNk1TbOqWst91xmG-zLiQnbtiA61qXzlvz4MbjDhiKrWG2QhcuFMhkNsRb-CQVdZixeCeLnOhy_wIKPxmyfJtc8T8LPZhWgaUS0JtZzXRFiCb42dTinOAx6ocTCbzz6y5FyFQDg}
+    session-id: ${COZE_SESSION_ID:pP4Jc23cxHz7OLXOIoBZg}
+    project-id: ${COZE_PROJECT_ID:7631386060257230888}
+    timeout: ${COZE_TIMEOUT:60000}
+    connect-timeout: ${COZE_CONNECT_TIMEOUT:10000}
   query:
     timeout: ${AI_QUERY_TIMEOUT:10000}
     max-rows: ${AI_QUERY_MAX_ROWS:1000}

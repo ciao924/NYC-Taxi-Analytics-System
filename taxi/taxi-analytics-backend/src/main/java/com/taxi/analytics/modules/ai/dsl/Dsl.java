@@ -1,9 +1,11 @@
 package com.taxi.analytics.modules.ai.dsl;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Map;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Dsl {
     private String metric;
     @JsonProperty("time_range")

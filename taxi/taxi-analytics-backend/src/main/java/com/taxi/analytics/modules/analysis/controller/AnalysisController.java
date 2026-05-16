@@ -208,4 +208,178 @@ public class AnalysisController {
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
         return Result.success(analysisService.getTipDistribution(startDate, endDate));
     }
+
+    @Operation(summary = "获取时段分布", description = "获取24小时的订单分布数据")
+    @GetMapping("/hourly/distribution")
+    public Result<List<Map<String, Object>>> getHourlyDistribution(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return Result.success(analysisService.getHourlyDistribution(startDate, endDate));
+    }
+
+    @Operation(summary = "获取星期分析", description = "获取周一至周日的订单分布及收入数据")
+    @GetMapping("/weekday/analysis")
+    public Result<List<Map<String, Object>>> getWeekdayAnalysis(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return Result.success(analysisService.getWeekdayAnalysis(startDate, endDate));
+    }
+
+    @Operation(summary = "获取费用构成分析", description = "获取车费、附加费、税费、小费等费用构成数据")
+    @GetMapping("/fee/composition")
+    public Result<List<Map<String, Object>>> getFeeComposition(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return Result.success(analysisService.getFeeComposition(startDate, endDate));
+    }
+
+    @Operation(summary = "获取区域收入分析", description = "获取各行政区（曼哈顿、布鲁克林等）的收入贡献数据")
+    @GetMapping("/borough/revenue")
+    public Result<List<Map<String, Object>>> getBoroughRevenue(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return Result.success(analysisService.getBoroughRevenue(startDate, endDate));
+    }
+
+    @Operation(summary = "获取区域流量分析", description = "获取各行政区之间的上下车流量数据")
+    @GetMapping("/borough/flow")
+    public Result<List<Map<String, Object>>> getBoroughFlow(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return Result.success(analysisService.getBoroughFlow(startDate, endDate));
+    }
+
+    @Operation(summary = "获取上车热点分析", description = "获取订单上车热点区域排名")
+    @GetMapping("/hotspots/pickup")
+    public Result<List<Map<String, Object>>> getPickupHotspots(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+            @Parameter(description = "返回记录数限制")
+            @RequestParam(defaultValue = "10") int limit) {
+        return Result.success(analysisService.getPickupHotspots(startDate, endDate, limit));
+    }
+
+    @Operation(summary = "获取下车热点分析", description = "获取订单下车热点区域排名")
+    @GetMapping("/hotspots/dropoff")
+    public Result<List<Map<String, Object>>> getDropoffHotspots(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+            @Parameter(description = "返回记录数限制")
+            @RequestParam(defaultValue = "10") int limit) {
+        return Result.success(analysisService.getDropoffHotspots(startDate, endDate, limit));
+    }
+
+    @Operation(summary = "获取车型费用分析", description = "获取不同车型（黄色、绿色等）的费用及小费数据")
+    @GetMapping("/fee/taxi-type")
+    public Result<List<Map<String, Object>>> getTaxiTypeFee(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return Result.success(analysisService.getTaxiTypeFee(startDate, endDate));
+    }
+
+    @Operation(summary = "供应商×支付方式交叉分析", description = "分析不同供应商在各支付方式上的订单分布与收入差异")
+    @GetMapping("/cross/vendor-payment")
+    public Result<List<Map<String, Object>>> getVendorPaymentCross(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return Result.success(analysisService.getVendorPaymentCross(startDate, endDate));
+    }
+
+    @Operation(summary = "机场×时段交叉分析", description = "分析三大机场在各时段的订单分布与运营效率")
+    @GetMapping("/cross/airport-time")
+    public Result<List<Map<String, Object>>> getAirportTimeCross(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return Result.success(analysisService.getAirportTimeCross(startDate, endDate));
+    }
+
+    @Operation(summary = "区域×支付方式交叉分析", description = "分析各行政区在不同支付方式上的订单分布")
+    @GetMapping("/cross/borough-payment")
+    public Result<List<Map<String, Object>>> getBoroughPaymentCross(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return Result.success(analysisService.getBoroughPaymentCross(startDate, endDate));
+    }
+
+    @Operation(summary = "供应商×车型交叉分析", description = "分析不同供应商在各车型上的运营表现")
+    @GetMapping("/cross/vendor-taxitype")
+    public Result<List<Map<String, Object>>> getVendorTaxiTypeCross(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return Result.success(analysisService.getVendorTaxiTypeCross(startDate, endDate));
+    }
+
+    @Operation(summary = "机场×区域交叉分析", description = "分析机场与行政区之间的订单流动关系")
+    @GetMapping("/cross/airport-borough")
+    public Result<List<Map<String, Object>>> getAirportBoroughCross(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return Result.success(analysisService.getAirportBoroughCross(startDate, endDate));
+    }
+
+    @Operation(summary = "时段×支付方式交叉分析", description = "分析不同时段在各支付方式上的订单分布")
+    @GetMapping("/cross/time-payment")
+    public Result<List<Map<String, Object>>> getTimePaymentCross(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return Result.success(analysisService.getTimePaymentCross(startDate, endDate));
+    }
+
+    @Operation(summary = "距离区间×支付方式交叉分析", description = "分析不同距离区间在各支付方式上的订单分布")
+    @GetMapping("/cross/distance-payment")
+    public Result<List<Map<String, Object>>> getDistancePaymentCross(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return Result.success(analysisService.getDistancePaymentCross(startDate, endDate));
+    }
+
+    @Operation(summary = "星期×时段交叉分析", description = "分析一周内各时段的订单分布规律")
+    @GetMapping("/cross/weekday-time")
+    public Result<List<Map<String, Object>>> getWeekdayTimeCross(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return Result.success(analysisService.getWeekdayTimeCross(startDate, endDate));
+    }
+
+    @Operation(summary = "车型×费用交叉分析", description = "分析不同车型在各项费用上的收入贡献")
+    @GetMapping("/cross/taxitype-fee")
+    public Result<List<Map<String, Object>>> getTaxiTypeFeeCross(
+            @Parameter(description = "开始日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "结束日期，格式：yyyy-MM-dd")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return Result.success(analysisService.getTaxiTypeFeeCross(startDate, endDate));
+    }
 }

@@ -2,6 +2,7 @@ package com.taxi.etl.ads.base
 
 import com.taxi.etl.common.{MetricsCollector, SmartCacheLite}
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.functions._
 import org.slf4j.LoggerFactory
 
 case class DwsDataBundle(
@@ -87,8 +88,10 @@ object DwsDataLoader {
          WHERE stat_date BETWEEN '$startDate' AND '$endDate') AS daily_cnt,
         (SELECT COUNT(*) FROM $DWS_DATABASE.dws_trip_hourly
          WHERE stat_date BETWEEN '$startDate' AND '$endDate') AS hourly_cnt,
-        (SELECT COUNT(*) FROM $DWS_DATABASE.dws_trip_zone_daily
-         WHERE stat_date BETWEEN '$startDate' AND '$endDate') AS zone_cnt,
+        ((SELECT COUNT(*) FROM $DWS_DATABASE.dws_trip_zone_pickup_daily
+         WHERE stat_date BETWEEN '$startDate' AND '$endDate') +
+         (SELECT COUNT(*) FROM $DWS_DATABASE.dws_trip_zone_dropoff_daily
+         WHERE stat_date BETWEEN '$startDate' AND '$endDate')) AS zone_cnt,
         (SELECT COUNT(*) FROM $DWS_DATABASE.dws_trip_fee_daily
          WHERE stat_date BETWEEN '$startDate' AND '$endDate') AS fee_cnt,
         (SELECT COUNT(*) FROM $DWS_DATABASE.dws_trip_vendor_daily
@@ -163,7 +166,8 @@ object DwsDataLoader {
                             endDate: String,
                             cache: SmartCacheLite
                           ): DataFrame = {
-    val df = spark.sql(s"""
+    // 合并上车区域和下车区域数据
+    val pickupDf = spark.sql(s"""
       SELECT
         stat_date,
         location_id,
@@ -171,11 +175,34 @@ object DwsDataLoader {
         borough,
         service_zone,
         pickup_count,
-        dropoff_count,
+        0 as dropoff_count,
         total_revenue_pickup
-      FROM $DWS_DATABASE.dws_trip_zone_daily
+      FROM $DWS_DATABASE.dws_trip_zone_pickup_daily
       WHERE stat_date BETWEEN '$startDate' AND '$endDate'
     """)
+
+    val dropoffDf = spark.sql(s"""
+      SELECT
+        stat_date,
+        location_id,
+        zone_name,
+        borough,
+        service_zone,
+        0 as pickup_count,
+        dropoff_count,
+        0 as total_revenue_pickup
+      FROM $DWS_DATABASE.dws_trip_zone_dropoff_daily
+      WHERE stat_date BETWEEN '$startDate' AND '$endDate'
+    """)
+
+    val df = pickupDf.unionAll(dropoffDf)
+      .groupBy("stat_date", "location_id", "zone_name", "borough", "service_zone")
+      .agg(
+        sum("pickup_count").as("pickup_count"),
+        sum("dropoff_count").as("dropoff_count"),
+        sum("total_revenue_pickup").as("total_revenue_pickup")
+      )
+    
     cache.cacheIfNeeded(df, "dws_zone")
   }
 
