@@ -54,7 +54,7 @@ Hive ODS 表 (ORC + SNAPPY)
 └─────────────────────────────────────┘
     │
     ▼
-Hive DWD 表 (Iceberg)
+Hive DWD 表 (Hive)
 表: nyc_taxi_dwd.fact_taxi_trips
 ```
 
@@ -253,7 +253,7 @@ hive -e "ALTER TABLE nyc_taxi_ods.taxi_trip_green_ods ADD PARTITION (year=2025, 
          ▼                 ▼                 ▼
    ┌───────────┐    ┌───────────┐    ┌───────────┐
    │ HDFS ODS  │    │ Hive ODS  │ ──►│ Hive DWD  │
-   │ (ORC)     │    │ (ORC)     │    │ (Iceberg) │
+   │ (ORC)     │    │ (ORC)     │    │ (ORC)     │
    └───────────┘    └───────────┘    └───────────┘
 ```
 
@@ -357,7 +357,7 @@ val greenDf = spark.table("nyc_taxi_ods.taxi_trip_green_ods")
 
 3. **长期规划**：
    - 统一命名规范，整个项目使用下划线命名
-   - 考虑使用 Iceberg 表替代纯 ORC 文件，支持更好的元数据管理
+   - 考虑使用 Hive 分区表优化，支持更好的元数据管理
 
 ---
 

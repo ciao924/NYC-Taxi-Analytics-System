@@ -29,7 +29,7 @@
 |------|------|
 | **实时+离线一体化** | Flink 实时流 + Spark 离线批处理 |
 | **Lambda架构** | 实时层与离线层分离，统一服务层 |
-| **数据湖方案** | 基于 Iceberg 构建企业级数据湖 |
+| **数据仓库方案** | 基于 Hive 构建企业级数据仓库 |
 | **质量保障** | 全链路数据质量检测与告警机制 |
 | **AI赋能** | 支持自然语言查询，智能生成SQL和图表 |
 
@@ -61,7 +61,7 @@
 │  └────────┬────────┘                                                       │
 │           ▼                                                                │
 │  ┌─────────────────┐     ┌──────────────┐     ┌──────────────────────┐     │
-│  │   DWD/DWS Layer │────▶│   Iceberg    │────▶│   MySQL Dashboard   │     │
+│  │   DWD/DWS Layer │────▶│   Hive       │────▶│   MySQL Dashboard   │     │
 │  │  (Hive Tables)  │     │  (Data Lake) │     │   (BI Reporting)    │     │
 │  └────────┬────────┘     └──────────────┘     └──────────────────────┘     │
 │           │                                                                │
@@ -161,7 +161,7 @@ data-producer/
 5. **阶段5**: 逻辑修复（现金支付小费归零、机场费逻辑修正）
 6. **阶段6**: 派生字段（trip_id、日期维度、行程类型）
 7. **阶段7**: 质量检测（QualityManager.fullCheck）
-8. **阶段8**: 原子写入（IcebergTableManager.atomicOverwrite）
+8. **阶段8**: 原子写入（IcebergTableManager.atomicOverwrite，支持 Hive/Iceberg 双模式）
 
 #### 3.3.3 ADS 层分析维度
 
@@ -228,7 +228,7 @@ data-producer/
 | **离线处理** | Apache Spark | 3.1.3 | 批处理引擎 |
 | **消息队列** | Apache Kafka | 3.4.0+ | 实时消息传递 |
 | **数据存储** | Apache Hive | 3.1.2+ | 元数据管理 |
-| | Apache Iceberg | 1.1.0 | 数据湖 |
+| | Apache Hive | 3.1.2 | 数据仓库 |
 | | MySQL | 8.0+ | 指标存储 |
 | **后端框架** | Spring Boot | 3.1.12 | RESTful 服务 |
 | **ORM** | MyBatis Plus | 3.5.5 | 数据库操作 |
@@ -254,7 +254,7 @@ Parquet 文件 → Data Producer → Kafka Topic → Flink Streaming → HDFS OD
 ### 5.2 离线链路
 
 ```
-Parquet 文件 → Spark Batch → Hive ODS → DWD/DWS → Iceberg → MySQL Dashboard
+Parquet 文件 → Spark Batch → Hive ODS → DWD/DWS → MySQL Dashboard
 ```
 
 **数据流向**:
@@ -263,7 +263,7 @@ Parquet 文件 → Spark Batch → Hive ODS → DWD/DWS → Iceberg → MySQL Da
 3. **DWD 构建**: DwdLayerBuilder 清洗转换
 4. **DWS 汇总**: DwsLayerBuilder 聚合计算
 5. **ADS 生成**: AdsLayerBuilder 多维度分析
-6. **指标输出**: 写入 Iceberg 和 MySQL
+6. **指标输出**: 写入 Hive 和 MySQL
 
 ---
 
@@ -274,8 +274,8 @@ Parquet 文件 → Spark Batch → Hive ODS → DWD/DWS → Iceberg → MySQL Da
 | 层级 | 英文名称 | 存储 | 特点 |
 |------|----------|------|------|
 | **ODS** | Operational Data Store | Hive ORC | 原始数据，保留完整历史 |
-| **DWD** | Data Warehouse Detail | Iceberg | 清洗后明细，支持变更追踪 |
-| **DWS** | Data Warehouse Summary | Iceberg | 主题域汇总，按维度聚合 |
+| **DWD** | Data Warehouse Detail | Hive | 清洗后明细，支持变更追踪 |
+| **DWS** | Data Warehouse Summary | Hive | 主题域汇总，按维度聚合 |
 | **ADS** | Application Data Service | MySQL | 面向报表，低延迟查询 |
 
 ### 6.2 表命名规范

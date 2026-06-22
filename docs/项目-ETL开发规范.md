@@ -393,13 +393,11 @@ object DwdLayerBuilder {
    * 写入目标表
    */
   private def writeToTarget(df: DataFrame, ctx: JobContext): Long = {
-    // 使用 Iceberg 写入
+    // 使用 Hive 写入（动态分区覆盖）
     df.write
-      .format("iceberg")
-      .mode("append")
-      .option("target-table", TARGET_TABLE)
-      .option("partition-spec", "dt")
-      .save()
+      .mode("overwrite")
+      .partitionBy("dt")
+      .saveAsTable(s"${ctx.database}.${TARGET_TABLE}")
 
     df.count()
   }
@@ -560,11 +558,11 @@ datasource {
   }
   dwd {
     path = "/user/hive_local/warehouse/nyc_taxi_dwd.db"
-    format = "iceberg"
+    format = "orc"
   }
   dws {
     path = "/user/hive_local/warehouse/nyc_taxi_dws.db"
-    format = "iceberg"
+    format = "orc"
   }
 }
 

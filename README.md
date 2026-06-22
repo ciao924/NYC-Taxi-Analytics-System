@@ -65,7 +65,7 @@
 │   │   streaming-processor  │    │     batch-processor          │         │
 │   │   (Apache Flink 1.17)  │    │     (Apache Spark 3.1)       │         │
 │   │   · 实时 ODS 落地      │    │     · ODS → DWD → DWS → ADS  │         │
-│   │   · 5分钟滑动窗口聚合  │    │     · Iceberg 数据湖管理      │         │
+│   │   · 5分钟滑动窗口聚合  │    │     · Hive 数据仓库管理      │         │
 │   │   · TOP N 区域统计     │    │     · 多层数据质量检测        │         │
 │   │   · 质量检测与告警     │    │     · 18张 ADS 业务指标表    │         │
 │   └────────────────────────┘    └──────────────────────────────┘         │
@@ -83,7 +83,7 @@
 
                     ┌───────────────────────────────────┐
                     │         数据存储层 (Storage)        │
-                    │  Kafka · HDFS · Hive · Iceberg · MySQL │
+                    │  Kafka · HDFS · Hive · MySQL │
                     └───────────────────────────────────┘
 ```
 
@@ -108,8 +108,8 @@ Parquet 源文件 / HDFS ODS
     ↓
 [batch-processor - Spark]
     ├── ODS 加载   → Hive ODS (原始层)
-    ├── DWD 构建   → Iceberg (明细层：清洗 + 标准化 + 维度关联)
-    ├── DWS 构建   → Iceberg (汇总层：6张主题宽表)
+    ├── DWD 构建   → Hive (明细层：清洗 + 标准化 + 维度关联)
+    ├── DWS 构建   → Hive (汇总层：6张主题宽表)
     └── ADS 构建   → MySQL  (应用层：18张业务指标表)
     ↓
 [taxi-analytics-backend] → REST API / WebSocket
@@ -130,12 +130,12 @@ Parquet 源文件 / HDFS ODS
 └────────────────────┬────────────────────────────────────┘
                      │
 ┌────────────────────▼────────────────────────────────────┐
-│                    DWS 层 (Iceberg)                      │
+│                    DWS 层 (Hive)                         │
 │         6 张主题宽表，按日/小时/区域等维度预聚合          │
 └────────────────────┬────────────────────────────────────┘
                      │
 ┌────────────────────▼────────────────────────────────────┐
-│                    DWD 层 (Iceberg)                      │
+│                    DWD 层 (Hive)                         │
 │         1 张事实大宽表，清洗标准化 + 维度关联 + 派生字段  │
 └────────────────────┬────────────────────────────────────┘
                      │
@@ -148,8 +148,8 @@ Parquet 源文件 / HDFS ODS
 | 层级 | 全称 | 存储格式 | 刷新策略 | 数据质量要求 |
 |------|------|----------|----------|-------------|
 | **ODS** | Operational Data Store | Hive / ORC+SNAPPY | 批量/实时写入 | 完整性 ≥ 99.9% |
-| **DWD** | Data Warehouse Detail | Iceberg / Parquet | 每日全量覆盖 | 完整性 100%，准确性 ≥ 99.5% |
-| **DWS** | Data Warehouse Service | Iceberg / Parquet | 每日全量覆盖 | 一致性 100% |
+| **DWD** | Data Warehouse Detail | Hive / ORC+SNAPPY | 每日全量覆盖 | 完整性 100%，准确性 ≥ 99.5% |
+| **DWS** | Data Warehouse Service | Hive / ORC+SNAPPY | 每日全量覆盖 | 一致性 100% |
 | **ADS** | Application Data Store | MySQL | T+1 批量写入 | 完整性 100% |
 
 ### DWS 主题宽表（6 张）
@@ -185,7 +185,6 @@ Parquet 源文件 / HDFS ODS
 | Apache Flink | 1.17.2 | 实时流处理引擎 |
 | Apache Kafka | 3.4.0 | 消息队列 |
 | Apache Hive | 3.1.2 | 数据仓库元数据管理 |
-| Apache Iceberg | 1.1.0 | 数据湖存储（ACID + Schema 演进） |
 | HDFS | 3.3+ | 分布式文件存储 |
 | Scala | 2.12.10 | Spark/Flink 开发语言 |
 
@@ -266,7 +265,7 @@ spark_test/
 │   │   ├── common/                        # 公共组件
 │   │   │   ├── CacheManager.scala        # 缓存管理
 │   │   │   ├── ConfigManager.scala       # 配置管理
-│   │   │   ├── IcebergTableManager.scala # Iceberg 表管理（原子写入）
+│   │   │   ├── IcebergTableManager.scala # 表管理（支持 Hive/Iceberg 双模式）
 │   │   │   ├── QualityManager.scala      # 质量管理
 │   │   │   ├── SmartCacheLite.scala      # 智能缓存（自动追踪释放）
 │   │   │   └── SparkSessionFactory.scala # Spark 会话工厂
@@ -550,9 +549,9 @@ npm run dev
 
 ## 🔑 核心技术亮点
 
-### 1. Iceberg 数据湖原子写入
+### 1. Hive 数据仓库原子写入
 
-批处理各层均采用 Iceberg 事务性覆盖写入，保障写入过程中查询不受影响：
+批处理各层均采用 Hive 动态分区覆盖写入，保障数据一致性：
 
 ```scala
 IcebergTableManager.atomicOverwrite(
@@ -560,6 +559,8 @@ IcebergTableManager.atomicOverwrite(
   Seq("year", "month", "taxi_type")
 )
 ```
+
+> 注：IcebergTableManager 支持双模式，当前配置为 Hive 模式（`iceberg.enabled=false`）
 
 ### 2. Spark 性能优化体系
 
